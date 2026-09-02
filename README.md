@@ -18,3 +18,4 @@ SwiftUI · SwiftData · Node 24 · TypeScript · Hono · PostgreSQL · AWS Lambd
 
 - [x] Phase 0 - Repo scaffold
 - [x] Phase 1 - iOS MVP
+- [x] Phase 2 - SwiftDAta persistence

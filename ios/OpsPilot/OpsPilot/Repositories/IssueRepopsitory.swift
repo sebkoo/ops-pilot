@@ -23,7 +23,7 @@ nonisolated enum RepositoryError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notFound: "Issue not found"
-        case .conflict: "Issue already exists. Please refresh and try again."
+        case .conflict: "This issue was updated elsewhere first. Refresh and try again."
         case .network(let message): "network error: \(message)"
         }
     }
