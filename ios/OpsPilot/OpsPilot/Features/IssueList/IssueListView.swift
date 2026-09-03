@@ -22,7 +22,7 @@ struct IssueListView: View {
                     IssueRowView(issue: issue)
                 }
             }
-            .navigationTitle("Issue")
+            .navigationTitle("Issues")
             .navigationDestination(for: UUID.self) { id in
                 IssueDetailView(issueID: id, viewModel: viewModel)
             }.toolbar {
