@@ -40,7 +40,7 @@ struct IssueDetailView: View {
                                 await viewModel.advanceStatus(of: issue)
                             }
                         } label: {
-                            Label("advanced to \(next.label)",
+                            Label("Advance to \(next.label)",
                                   systemImage: "arrow.right.circle.fill"
                             )
                         }
