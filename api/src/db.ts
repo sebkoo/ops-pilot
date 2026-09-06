@@ -12,7 +12,7 @@ export function getPool(): pg.Pool {
 
 export async function query<Row extends pg.QueryResultRow>(
   text: string,
-  params: unknown[],
+  params: unknown[] = [],
 ): Promise<Row[]> {
   const result = await getPool().query<Row>(text, params);
   return result.rows;

@@ -62,7 +62,7 @@ enum IssuePriority: String, CaseIterable, Codable, Identifiable, Comparable {
 }
 
 enum IssueStatus: String, CaseIterable, Codable, Identifiable {
-    case open, assigned, inProgress = "in-progress", resolved
+    case open, assigned, inProgress = "in_progress", resolved
 
     var id: String { rawValue }
 

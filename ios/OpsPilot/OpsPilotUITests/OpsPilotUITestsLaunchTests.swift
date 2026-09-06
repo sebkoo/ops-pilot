@@ -2,7 +2,7 @@
 //  OpsPilotUITestsLaunchTests.swift
 //  OpsPilotUITests
 //
-//  Created by Bonmyeong Koo - Vendor on 9/2/26.
+//  Created by Ben Koo
 //
 
 import XCTest

@@ -15,13 +15,14 @@ interface IssueRow {
   location: string;
   assignee: string | null;
   ai_summary: string | null;
+  created_by: string | null;
   version: number;
   created_at: string;
   updated_at: string;
 }
 
 const COLUMNS =
-  'id, title, details, category, priority, status, location, assignee, ai_summary, version, created_at, updated_at';
+  'id, title, details, category, priority, status, location, assignee, ai_summary, version, created_by, created_at, updated_at';
 
 function toIssue(row: IssueRow): Issue {
   return {
@@ -34,6 +35,7 @@ function toIssue(row: IssueRow): Issue {
     location: row.location,
     assignee: row.assignee,
     aiSummary: row.ai_summary,
+    createdBy: row.created_by,
     version: row.version,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -85,11 +87,11 @@ export async function getIssue(id: string): Promise<Issue | null> {
 }
 
 export async function insertIssue(
-  input: CreateIssueInput & { id: string },
+  input: CreateIssueInput & { id: string; createdBy: string },
 ): Promise<Issue> {
   const rows = await query<IssueRow>(
-    `INSERT INTO issues (id, title, details, category, priority, location)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO issues (id, title, details, category, priority, location, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING ${COLUMNS}`,
     [
       input.id,
@@ -98,6 +100,7 @@ export async function insertIssue(
       input.category,
       input.priority,
       input.location,
+      input.createdBy,
     ],
   );
   const row = rows[0];

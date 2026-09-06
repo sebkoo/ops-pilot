@@ -13,7 +13,7 @@ struct OpsPilotApp: App {
 
     var body: some Scene {
         WindowGroup {
-            IssueListView(repository: container.issueRepository)
+            RootView(container: container)
         }
     }
 }

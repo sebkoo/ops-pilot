@@ -2,6 +2,7 @@ name: opspilot
 services:
   db:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: opspilot
       POSTGRES_PASSWORD: opspilot

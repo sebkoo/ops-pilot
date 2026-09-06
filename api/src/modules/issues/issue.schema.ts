@@ -4,6 +4,7 @@ export const IssueCategory = z.enum([
   'equipment',
   'safety',
   'cleanliness',
+  'inventory',
   'other',
 ]);
 export const IssuePriority = z.enum(['low', 'medium', 'high', 'critical']);
@@ -63,6 +64,7 @@ export interface Issue {
   location: string;
   assignee: string | null;
   aiSummary: string | null;
+  createdBy: string | null;
   version: number;
   createdAt: string;
   updatedAt: string;

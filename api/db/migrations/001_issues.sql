@@ -1,17 +1,17 @@
-CREATE TABLE IF NOT EXISTS issues (
-  id UUID PRIMARY KEY,
-  title TEXT NOT NULL CHECK (char_length(title) BETWEEN 1 AND 120),
-  details TEXT NOT NULL DEFAULT '',
-  category TEXT NOT NULL CHECK (category IN ('equipment','safety','cleanliness','inventory','other')),
-  priority TEXT NOT NULL CHECK (priority IN ('low','medium','high','critical')),
-  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','assigned','in_progress','resolved')),
-  location TEXT NOT NULL,
-  assignee TEXT,
-  ai_summary TEXT,
-  version INTEGER NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+create table if not exists issues (
+  id uuid primary key,
+  title text not null check (char_length(Title) between 1 and 120),
+  details text not null default '',
+  category text not null check (category in ('equipment', 'safety', 'cleanliness', 'inventory', 'other')),
+  priority text not null check (priority in ('low', 'medium', 'high', 'critical')),
+  status text not null default 'open' check (status in ('open', 'assigned', 'in_progress', 'resolved')),
+  location text not null,
+  assignee text,
+  ai_summary text,
+  version integer not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
-CREATE INDEX IF NOT EXISTS issues_created_idx ON issues (created_at DESC, id DESC);
-CREATE INDEX IF NOT EXISTS issues_status_created_idx ON issues (status, created_at DESC);
+create index if not exists issues_created_idx on issues (created_at desc, id desc);
+create index if not exists issues_stats_created_idx on issues (status, created_at desc);
