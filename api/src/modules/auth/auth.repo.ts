@@ -8,7 +8,9 @@ export interface UserRow {
   display_name: string;
   role: Role;
   created_at: Date;
+  deleted_at: Date | null;
 }
+
 export interface PublicUser {
   id: string;
   email: string;
@@ -24,20 +26,24 @@ export const toPublicUser = (row: UserRow): PublicUser => ({
 });
 
 export async function findUserByEmail(email: string): Promise<UserRow | null> {
-  const rows = await query<UserRow>('SELECT * FROM users WHERE email = $1', [
-    email,
-  ]);
+  const rows = await query<UserRow>(
+    'SELECT * FROM users WHERE email = $1 AND deleted_at is NULL',
+    [email],
+  );
   return rows[0] ?? null;
 }
 
 export async function findUserById(id: string): Promise<UserRow | null> {
-  const rows = await query<UserRow>('SELECT * FROM users WHERE id = $1', [id]);
+  const rows = await query<UserRow>(
+    'SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL',
+    [id],
+  );
   return rows[0] ?? null;
 }
 
 export async function countUsers(): Promise<number> {
   const rows = await query<{ count: string }>(
-    'SELECT count(*)::text AS count FROM users',
+    'SELECT count(*)::text AS count FROM users WHERE deleted_at IS NULL',
   );
   return Number(rows[0]?.count ?? '0');
 }
@@ -55,4 +61,23 @@ export async function createUser(input: {
   const row = rows[0];
   if (!row) throw new Error('INSERT user did not return a row.');
   return row;
+}
+
+export async function countManagers(): Promise<number> {
+  const rows = await query<{ count: string }>(
+    "SELECT count(*)::text AS count FROM users WHERE role = 'manager' AND deleted_at IS NULL",
+  );
+  return Number(rows[0]?.count ?? '0');
+}
+
+export async function softDeleteUser(id: string): Promise<void> {
+  await query(
+    `UPDATE users 
+    SET deleted_at = now(),
+        email = 'deleted+' || id::text || '@invalid',
+        display_name = 'Deleted User',
+        password_hash = ''
+    WHERE id = $1 AND deleted_at IS NULL`,
+    [id],
+  );
 }

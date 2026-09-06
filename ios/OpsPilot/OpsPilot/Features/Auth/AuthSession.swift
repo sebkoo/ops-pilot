@@ -99,6 +99,16 @@ final class AuthSession {
         }
     }
 
+    func deleteAccount(password: String) async throws {
+        let body = try client.encode(["password": password])
+        try await client.send(Endpoint(
+            method: "DELETE",
+            path: "auth/me",
+            body: body)
+        )
+        logout(reason: .user)
+    }
+
     func logout(reason: SignOutReason = .user) {
         user = nil
         accessToken = nil

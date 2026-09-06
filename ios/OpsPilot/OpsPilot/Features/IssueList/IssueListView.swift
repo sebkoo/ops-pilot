@@ -8,9 +8,11 @@
 import SwiftUI
 
 struct IssueListView: View {
+    @Environment(AuthSession.self) private var auth
+
     @State private var viewModel: IssueListViewModel
     @State private var showNewIssue = false
-    @Environment(AuthSession.self) private var auth
+    @State private var isPresentingDeleteAccount = false
 
     init(repository: any IssueRepository) {
         _viewModel = State(initialValue: IssueListViewModel(repository: repository))
@@ -38,7 +40,11 @@ struct IssueListView: View {
             }
             .sheet(isPresented: $showNewIssue) {
                 NewIssueView(viewModel: viewModel)
-            }.overlay {
+            }
+            .sheet(isPresented: $isPresentingDeleteAccount) {
+                DeleteAccountView()
+            }
+            .overlay {
                 if viewModel.visibleIssues.isEmpty && !viewModel.isLoading {
                     ContentUnavailableView("No issues", systemImage: "checkmark.circle", description: Text("Tap + to create your first issue."))
                 }
@@ -74,6 +80,9 @@ struct IssueListView: View {
             }
             Button("Logout", role: .destructive) {
                 auth.logout()
+            }
+            Button("Delete Account", role: .destructive) {
+                isPresentingDeleteAccount = true
             }
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
