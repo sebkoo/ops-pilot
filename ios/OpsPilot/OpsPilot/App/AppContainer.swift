@@ -12,12 +12,18 @@ import SwiftData
 final class AppContainer {
     let issueRepository: any IssueRepository
     let modelContainer: ModelContainer
+    let apiClient: APIClient
+    let authSession: AuthSession
 
     init(issueRepository: any IssueRepository,
-         modelContainer: ModelContainer
+         modelContainer: ModelContainer,
+         apiClient: APIClient,
+         authSession: AuthSession
     ) {
         self.issueRepository = issueRepository
         self.modelContainer = modelContainer
+        self.apiClient = apiClient
+        self.authSession = authSession
     }
 
     static func live() -> AppContainer {
@@ -28,8 +34,15 @@ final class AppContainer {
             fatalError("Cannot open database: \(error)")
         }
         seedIfEmpty(context: container.mainContext)
-        return AppContainer(issueRepository: SwiftDataIssueRepository(context: container.mainContext),
-                            modelContainer: container)
+        let client = APIClient(baseURL: AppConfig.apiBaseURL)
+        let auth = AuthSession(client: client)
+
+        return AppContainer(
+            issueRepository: RemoteIssueRepository(client: client),
+            modelContainer: container,
+            apiClient: client,
+            authSession: auth
+        )
     }
 
     private static func seedIfEmpty(context: ModelContext) {

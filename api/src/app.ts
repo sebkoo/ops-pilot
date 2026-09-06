@@ -3,6 +3,7 @@ import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 import { onError, onNotFound } from './errors.js';
 import { issueRoutes } from './modules/issues/issue.routes.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
 
 export const app = new Hono();
 
@@ -12,6 +13,7 @@ app.use('*', logger());
 app.get('/health', (c) =>
   c.json({ ok: true, service: 'opspilot-api', time: new Date().toISOString() }),
 );
+app.route('/auth', authRoutes);
 app.route('/issues', issueRoutes);
 
 app.onError(onError);

@@ -10,6 +10,7 @@ import SwiftUI
 struct IssueListView: View {
     @State private var viewModel: IssueListViewModel
     @State private var showNewIssue = false
+    @Environment(AuthSession.self) private var auth
 
     init(repository: any IssueRepository) {
         _viewModel = State(initialValue: IssueListViewModel(repository: repository))
@@ -32,21 +33,22 @@ struct IssueListView: View {
                         showNewIssue = true
                     } label: {
                         Image(systemName: "plus")
-                    }.sheet(isPresented: $showNewIssue) {
-                        NewIssueView(viewModel: viewModel)
-                    }.overlay {
-                        if viewModel.visibleIssues.isEmpty && !viewModel.isLoading {
-                            ContentUnavailableView("No issue", systemImage: "checkmark.circle", description: Text("Tap the + butotn to create your first issue."))
-                        }
-                    }
-                    .refreshable { await viewModel.load() }
-                    .task { await viewModel.load() }
-                    .alert("Something went wrong", isPresented: hasError) {
-                        Button("Ok", role: .cancel) { }
-                    } message: {
-                        Text(viewModel.errorMessage ?? "")
                     }
                 }
+            }
+            .sheet(isPresented: $showNewIssue) {
+                NewIssueView(viewModel: viewModel)
+            }.overlay {
+                if viewModel.visibleIssues.isEmpty && !viewModel.isLoading {
+                    ContentUnavailableView("No issues", systemImage: "checkmark.circle", description: Text("Tap + to create your first issue."))
+                }
+            }
+            .refreshable { await viewModel.load() }
+            .task { await viewModel.load() }
+            .alert("Something went wrong", isPresented: hasError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
             }
         }
     }
@@ -66,6 +68,13 @@ struct IssueListView: View {
                     Text(status.label).tag(Optional(status))
                 }
             }
+            Divider()
+            if let name = auth.user?.displayName {
+                Text("\(name) · \(auth.isManager ? "Manager" : "Staff")")
+            }
+            Button("Logout", role: .destructive) {
+                auth.logout()
+            }
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
         }
@@ -74,4 +83,5 @@ struct IssueListView: View {
 
 #Preview {
     IssueListView(repository: InMemoryIssueRepository())
+        .environment(PreviewDeps.auth)
 }

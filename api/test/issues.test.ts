@@ -3,15 +3,24 @@ import { initConfig } from '../src/config.js';
 import { app } from '../src/app.js';
 import { closePool } from '../src/db.js';
 
+let headers: Record<string, string> = { 'content-type': 'application/json' };
+
 const json = (body: unknown, method = 'POST') => ({
   method,
-  headers: { 'content-type': 'application/json' },
+  headers,
   body: JSON.stringify(body),
 });
 const read = <T>(res: Response) => res.json() as Promise<T>;
 
-beforeAll(() => {
+beforeAll(async () => {
   initConfig();
+  const email = `test-${Date.now()}@example.com`;
+  const res = await app.request(
+    '/auth/register',
+    json({ email, password: 'correct-horse-battery', displayName: 'tester' }),
+  );
+  const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
+  headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
 });
 afterAll(async () => {
   await closePool();
@@ -39,7 +48,7 @@ describe('issues API', () => {
     const issue = await read<{ id: string; version: number }>(created);
     expect(issue.version).toBe(1);
 
-    const fetched = await app.request(`/issues/${issue.id}`);
+    const fetched = await app.request(`/issues/${issue.id}`, { headers });
     expect(fetched.status).toBe(200);
 
     const patched = await app.request(
@@ -79,5 +88,10 @@ describe('issues API', () => {
     );
     expect(body.error.code).toBe('validation_error');
     expect(body.error.details.length).toBeGreaterThan(0);
+  });
+
+  it('returns 401 when no token is provided', async () => {
+    const res = await app.request('/issues');
+    expect(res.status).toBe(401);
   });
 });

@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { AppError } from '../../errors.js';
 import { validate } from '../../validate.js';
 import { z } from 'zod';
+import { requireAuth, type AuthEnv } from '../../middleware/auth.js';
+import { recordEvent } from './event.repo.js';
 import {
   ALLOWED_TRANSITIONS,
   CreateISsueSchema,
@@ -16,7 +18,8 @@ import {
 } from './issue.repo.js';
 import type { Cursor } from './issue.repo.js';
 
-export const issueRoutes = new Hono();
+export const issueRoutes = new Hono<AuthEnv>();
+issueRoutes.use('*', requireAuth);
 
 const TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/;
@@ -63,6 +66,10 @@ issueRoutes.post('/', validate('json', CreateISsueSchema), async (c) => {
   const issue = await insertIssue({
     ...body,
     id: body.id ?? crypto.randomUUID(),
+    createdBy: c.get('user').id,
+  });
+  await recordEvent(issue.id, c.get('user').id, 'issue_created', {
+    title: issue.title,
   });
   return c.json(issue, 201);
 });
@@ -70,6 +77,16 @@ issueRoutes.post('/', validate('json', CreateISsueSchema), async (c) => {
 issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
   const patch = c.req.valid('json');
   const current = await getIssue(c.req.param('id'));
+  const user = c.get('user');
+  if (patch.assignee !== undefined && user.role !== 'manager')
+    throw new AppError(403, 'forbidden', 'Only managers can assign issues.');
+  if (user.role !== 'manager' && current?.createdBy !== user.id)
+    throw new AppError(
+      403,
+      'not_owner',
+      'You can only modify issues you created.',
+    );
+
   if (!current) throw new AppError(404, 'not_found', `Issue not found`);
   if (
     patch.status &&
@@ -92,5 +109,13 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
       `Issue has was updated elsewhere first.`,
       { current: result.current },
     );
+  await recordEvent(
+    current.id,
+    user.id,
+    patch.status && patch.status !== current.status
+      ? 'status_changed'
+      : 'issue_updated',
+    { from: current.status, patch },
+  );
   return c.json(result.issue);
 });
