@@ -6,10 +6,12 @@ import { requireAuth, type AuthEnv } from '../../middleware/auth.js';
 import { hashPassword, verifyPassword } from './password.js';
 import { issueTokens, verifyRefresh } from './tokens.js';
 import {
+  countManagers,
   countUsers,
   createUser,
   findUserByEmail,
   findUserById,
+  softDeleteUser,
   toPublicUser,
 } from './auth.repo.js';
 
@@ -17,10 +19,14 @@ const CredentialsSchema = z.object({
   email: z.email().transform((value) => value.toLowerCase()),
   password: z.string().min(8).max(200),
 });
+
 const RegisterSchema = CredentialsSchema.extend({
   displayName: z.string().trim().min(1).max(60),
 });
+
 const RefreshSchema = z.object({ refreshToken: z.string().min(1) });
+
+const DeleteAccountSchema = z.object({ password: z.string().min(1) });
 
 export const authRoutes = new Hono<AuthEnv>();
 
@@ -66,3 +72,34 @@ authRoutes.get('/me', requireAuth, async (c) => {
   if (!user) throw new AppError(404, 'not_found', 'No user found');
   return c.json(toPublicUser(user));
 });
+
+authRoutes.delete(
+  '/me',
+  requireAuth,
+  validate('json', DeleteAccountSchema),
+  async (c) => {
+    const { password } = c.req.valid('json');
+    const user = await findUserById(c.get('user').id);
+    if (!user)
+      throw new AppError(404, 'not_found', 'Account could not be found.');
+    if (!(await verifyPassword(password, user.password_hash)))
+      throw new AppError(
+        401,
+        'invalid_credentials',
+        'The password is incorrect.',
+      );
+    if (
+      user.role === 'manager' &&
+      (await countUsers()) > 1 &&
+      (await countManagers()) <= 1
+    ) {
+      throw new AppError(
+        409,
+        'last_manager',
+        'The last maanger cannot delete their account. Please create another.',
+      );
+    }
+    await softDeleteUser(user.id);
+    return c.body(null, 204);
+  },
+);

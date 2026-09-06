@@ -83,6 +83,7 @@ describe('issues API', () => {
       json({ title: '', category: 'nope' }),
     );
     expect(res.status).toBe(400);
+
     const body = await read<{ error: { code: string; details: unknown[] } }>(
       res,
     );

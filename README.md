@@ -21,7 +21,8 @@ The app reaches storage only through an `IssueRepository` protocol; today that i
 - Integration tests hit a real PostgreSQL through `app.request()` — no port, no mocks
 - Domain model separated from the persistence model on iOS; the repository was swapped without touching a view
 - Next: auth with short-lived access tokens → outbox sync with rotating idempotency keys and `(updated_at, id)` delta cursors → Lambda + CDK inside always-free limits
-
+- Account deletion is a soft delete: the row is anonymized and kept so audit history survives, with a partial unique index (WHERE deleted_at IS NULL) so the same email can register again — App Store 5.1.1(v) requires in-app deletion.
+- Short-lived access tokens with refresh rotation; /auth/refresh re-checks that the user still exists, so a deleted account is cut off at the next refresh instead of needing a token blocklist.
 </details>
 
 <details><summary><b>Why not X?</b></summary>
@@ -39,4 +40,4 @@ open ios/OpsPilot/OpsPilot.xcodeproj    # then ⌘R
 
 </details>
 
-**Status** [x] iOS MVP · [x] SwiftData persistence · [x] REST API + PostgreSQL + tests · [ ] Auth (JWT/RBAC) · [ ] Offline sync · [ ] Observability + CI · [ ] AWS Lambda demo · [ ] React dashboard
+**Status** [x] iOS MVP · [x] SwiftData persistence · [x] REST API + PostgreSQL + tests · [x] Auth (JWT/RBAC) · [ ] Offline sync · [ ] Observability + CI · [ ] AWS Lambda demo · [ ] React dashboard
