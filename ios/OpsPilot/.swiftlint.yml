@@ -1,0 +1,59 @@
+included:
+  - OpsPilot
+  - OpsPilotTests
+  - OpsPilotUITests
+
+disabled_rules:
+  - line_length
+  - trailing_comma
+  - opening_brace
+
+opt_in_rules:
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - empty_count
+  - first_where
+  - explicit_init
+  - redundant_type_annotation
+  - discouraged_optional_boolean
+  - weak_delegate
+
+analyzer_rules: []
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  excluded: [id]
+
+function_body_length:
+  warning: 60
+  error: 120
+
+type_body_length:
+  warning: 300
+  error: 500
+
+custom_rules:
+  network_only_in_networking:
+    name: 'Networking is allowed only in Networking.'
+    included: ["(^|/)OpsPilot/.*\\.swift"]
+    excluded:
+      [
+        '.*OpsPilotU?I?Tests/.*',
+        '.*/(Networking|Sync|Upload|Analytics|Metrics)/.*',
+        ".*OpsPilotApp\\.swift",
+      ]
+    regex: "URLSession\\s*[.(]|:\\s*URLSession\\b|URLRequest\\s*\\("
+    match_kinds: [typeidentifier, identifier]
+    message: 'Do not call the network directly from views or view models — use the Repository → APIClient path (OP-4.3).'
+    severity: error
+
+  base_url_only_in_appconfig:
+    name: 'Server URLs are allowed only in AppConfig.'
+    included: ["(^|/)OpsPilot/.*\\.swift"]
+    excluded: ['.*OpsPilotU?I?Tests/.*', ".*AppConfig\\.swift"]
+    regex: 'https?://'
+    match_kinds: [string]
+    message: 'Do not hard-code URLs in source code — use AppConfig.apiBaseURL instead (OP-7.6).'
+    severity: error
