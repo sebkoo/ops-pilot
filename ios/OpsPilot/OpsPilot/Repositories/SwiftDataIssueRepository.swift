@@ -10,7 +10,7 @@ import SwiftData
 
 @MainActor
 final class SwiftDataIssueRepository: IssueRepository {
-    private let context: ModelContext
+    let context: ModelContext
 
     init(context: ModelContext) {
         self.context = context
@@ -30,6 +30,7 @@ final class SwiftDataIssueRepository: IssueRepository {
     func create(_ issue: Issue) async throws -> Issue {
         let entity = IssueEntity(from: issue)
         context.insert(entity)
+
         try context.save()
         return entity.asIssue
     }
@@ -41,18 +42,21 @@ final class SwiftDataIssueRepository: IssueRepository {
         guard entity.version == issue.version else {
             throw RepositoryError.conflict
         }
+
         entity.apply(issue)
         entity.version += 1
         entity.updatedAt = Date()
+
         try context.save()
         return entity.asIssue
     }
 
-    private func entity(id: UUID) throws -> IssueEntity? {
+    func entity(id: UUID) throws -> IssueEntity? {
         var descriptor = FetchDescriptor<IssueEntity>(
             predicate: #Predicate<IssueEntity> { $0.id == id }
         )
         descriptor.fetchLimit = 1
+
         return try context.fetch(descriptor).first
     }
 }
