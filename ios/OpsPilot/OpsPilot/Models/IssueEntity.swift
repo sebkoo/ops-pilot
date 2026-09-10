@@ -50,18 +50,19 @@ final class IssueEntity {
     }
 
     var asIssue: Issue {
-        Issue(id: id,
-              title: title,
-              details: details,
-              category: IssueCategory(rawValue: categoryRaw) ?? .other,
-              priority: IssuePriority(rawValue: priorityRaw) ?? .medium,
-              status: IssueStatus(rawValue: statusRaw) ?? .open,
-              location: location,
-              assignee: assignee,
-              aiSummary: aiSummary,
-              version: version,
-              createdAt: createdAt,
-              updatedAt: updatedAt
+        Issue(
+            id: id,
+            title: title,
+            details: details,
+            category: IssueCategory(rawValue: categoryRaw) ?? .other,
+            priority: IssuePriority(rawValue: priorityRaw) ?? .medium,
+            status: IssueStatus(rawValue: statusRaw) ?? .open,
+            location: location,
+            assignee: assignee,
+            aiSummary: aiSummary,
+            version: version,
+            createdAt: createdAt,
+            updatedAt: updatedAt
         )
     }
 }
