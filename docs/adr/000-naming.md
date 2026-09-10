@@ -1,6 +1,6 @@
 # ADR-000: Workking name "OpsPilot" is provisional
 
-Date: 2026-09-02
+Date: 2026-09-10
 
 ## Status
 

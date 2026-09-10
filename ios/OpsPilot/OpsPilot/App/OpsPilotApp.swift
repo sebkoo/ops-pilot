@@ -12,8 +12,6 @@ struct OpsPilotApp: App {
     private let container = AppContainer.live()
 
     var body: some Scene {
-        WindowGroup {
-            RootView(container: container)
-        }
+        WindowGroup { RootView(container: container) }
     }
 }
