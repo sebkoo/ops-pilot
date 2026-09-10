@@ -5,7 +5,10 @@ let pool: pg.Pool | undefined;
 
 export function getPool(): pg.Pool {
   if (!pool) {
-    pool = new pg.Pool({ connectionString: config.DATABASE_URL, max: 5 });
+    pool = new pg.Pool({
+      connectionString: config.DATABASE_URL,
+      max: 5,
+    });
   }
   return pool;
 }

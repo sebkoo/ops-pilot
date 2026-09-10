@@ -14,4 +14,5 @@ create table if not exists issues (
 );
 
 create index if not exists issues_created_idx on issues (created_at desc, id desc);
+
 create index if not exists issues_stats_created_idx on issues (status, created_at desc);
