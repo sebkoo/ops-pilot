@@ -18,8 +18,7 @@ struct NewIssueView: View {
     @State private var priority: IssuePriority = .medium
 
     private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !location.trimmingCharacters(in: .whitespaces).isEmpty
+        !title.trimmingCharacters(in: .whitespaces).isEmpty && !location.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {
@@ -54,11 +53,12 @@ struct NewIssueView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         Task {
-                            await viewModel.create(title: title,
-                                                   details: details,
-                                                   category: category,
-                                                   priority: priority,
-                                                   location: location
+                            await viewModel.create(
+                                title: title,
+                                details: details,
+                                category: category,
+                                priority: priority,
+                                location: location
                             )
                             dismiss()
                         }
