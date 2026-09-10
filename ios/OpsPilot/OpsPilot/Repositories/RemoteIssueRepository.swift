@@ -15,83 +15,57 @@ final class RemoteIssueRepository: IssueRepository {
         self.client = client
     }
 
-    private struct Page: Decodable {
-        let issues: [Issue]
+    private struct Page<Item: Decodable>: Decodable {
+        let items: [Item]
         let nextCursor: String?
-    }
-
-    private struct CreateBody: Encodable {
-        let id: UUID
-        let title: String
-        let details: String
-        let category: IssueCategory
-        let priority: IssuePriority
-        let location: String
-    }
-
-    private struct UpdateBody: Encodable {
-        let version: Int
-        let title: String
-        let details: String
-        let category: IssueCategory
-        let priority: IssuePriority
-        let status: IssueStatus
-        let location: String
     }
 
     func fetchAll() async throws -> [Issue] {
         try await mapError {
-            try await client.send(Endpoint(
-                method: "GET",
-                path: "issues",
-                query: [URLQueryItem(name: "limit", value: "100")]
-            ), as: Page.self).issues
+            try await client.send(
+                Endpoint(
+                    method: "GET",
+                    path: "issues",
+                    query: [URLQueryItem(name: "limit", value: "100")]
+                ), as: Page.self
+            ).items
         }
     }
-    
+
     func fetch(id: UUID) async throws -> Issue? {
         do {
             return try await mapError {
-                try await client.send(Endpoint(
-                    method: "GET",
-                    path: "issues/\(id.uuidString.lowercased())"
-                ), as: Issue.self)
+                try await client.send(
+                    Endpoint(
+                        method: "GET",
+                        path: "issues/\(id.uuidString.lowercased())"
+                    ), as: Issue.self)
             }
         } catch RepositoryError.notFound {
             return nil
         }
     }
-    
+
     func create(_ issue: Issue) async throws -> Issue {
-        let body = try client.encode(CreateBody(
-            id: issue.id,
-            title: issue.title,
-            details: issue.details,
-            category: issue.category,
-            priority: issue.priority,
-            location: issue.location)
-        )
+        let body = try client.encode(CreateIssueBody(issue))
+
         return try await mapError {
-            try await client.send(Endpoint(
-                method: "POST",
-                path: "issues",
-                body: body
-            ), as: Issue.self)
+            try await client.send(
+                Endpoint(
+                    method: "POST",
+                    path: "issues",
+                    body: body
+                ), as: Issue.self)
         }
     }
 
     func update(_ issue: Issue) async throws -> Issue {
-        let body = try client.encode(UpdateBody(
-            version: issue.version,
-            title: issue.title,
-            details: issue.details,
-            category: issue.category,
-            priority: issue.priority,
-            status: issue.status,
-            location: issue.location)
-        )
+        let body = try client.encode(UpdateIssueBody(issue))
+
         return try await mapError {
-            try await client.send(Endpoint(method: "PATCH", path: "issues/\(issue.id.uuidString.lowercased())", body: body), as: Issue.self)
+            try await client.send(
+                Endpoint(method: "PATCH", path: "issues/\(issue.id.uuidString.lowercased())", body: body),
+                as: Issue.self)
         }
     }
 
@@ -108,5 +82,4 @@ final class RemoteIssueRepository: IssueRepository {
             throw RepositoryError.network(error.localizedDescription)
         }
     }
-
 }

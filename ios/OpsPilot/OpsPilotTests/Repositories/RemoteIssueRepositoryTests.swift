@@ -11,7 +11,7 @@ import Testing
 @testable import OpsPilot
 
 @MainActor
-struct RemoteIsueRepositoryTests {
+struct RemoteIssueRepositoryTests {
     private let stub = StubTransport()
     private let repository: RemoteIssueRepository
 
@@ -33,17 +33,18 @@ struct RemoteIsueRepositoryTests {
 
     @Test("Calls the server-defined response shape and extracts only the payload")
     func speaksTheServerShape() async throws {
-        print(TestJSON.list([sample("A"), sample("B")], nextCursor: "next-page"))
+        print(TestJSON.list(
+            [sample("A"), sample("B")],
+            nextCursor: "next-page")
+        )
         let draft = sample("Wet Floor")
         var serverCopy = draft
         serverCopy.assignee = "Minsoo Kim"
         await stub.on(
             "GET /issues",
-            .json(
-                200,
-                TestJSON.list(
-                    [sample("A"), sample("B")],
-                    nextCursor: "next-page")
+            .json(200,TestJSON.list(
+                [sample("A"), sample("B")],
+                nextCursor: "next-page")
             )
         )
         await stub.on(
@@ -66,13 +67,11 @@ struct RemoteIsueRepositoryTests {
         let issue = sample("X")
         await stub.on(
             "GET /issues/*",
-            .json(
-                404, TestJSON.error("not_found", "Not found"))
+            .json(404, TestJSON.error("not_found", "Not found"))
         )
         await stub.on(
             "PATCH /issues/*",
-            .json(
-                409, TestJSON.conflict)
+            .json(409, TestJSON.conflict)
         )
         await stub.on("GET /issues", .offline(.notConnectedToInternet))
         let missing = try await repository.fetch(id: issue.id)
