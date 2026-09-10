@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Issue: Identifiable, Hashable, Codable {
+nonisolated struct Issue: Identifiable, Hashable, Codable {
     let id: UUID
     var title: String
     var details: String
