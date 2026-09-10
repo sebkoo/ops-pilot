@@ -12,7 +12,9 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if container.authSession.isSignedIn {
+            if container.authSession.isSignedIn
+                || UITestMode.isOn
+            {
                 IssueListView(repository: container.issueRepository)
             } else {
                 LoginView(session: container.authSession)

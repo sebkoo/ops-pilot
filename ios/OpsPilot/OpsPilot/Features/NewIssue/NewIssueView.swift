@@ -26,10 +26,12 @@ struct NewIssueView: View {
             Form {
                 Section("What happened?") {
                     TextField("Title (e.g.: Freezer temperature issue)", text: $title)
+                        .accessibilityIdentifier("titleField")
                     TextField("Details", text: $details, axis: .vertical).lineLimit(3...6)
                 }
                 Section("Where?") {
                     TextField("Location (e.g., Store #128 · Freezer", text: $location)
+                        .accessibilityIdentifier("locationField")
                 }
                 Section("Classification") {
                     Picker("Category", selection: $category) {
@@ -63,6 +65,7 @@ struct NewIssueView: View {
                             dismiss()
                         }
                     }.disabled(!canSave)
+                        .accessibilityIdentifier("saveButton")
                 }
             }
         }

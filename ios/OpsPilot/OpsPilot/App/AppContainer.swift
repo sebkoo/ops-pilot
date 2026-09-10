@@ -31,6 +31,12 @@ final class AppContainer {
     }
 
     static func live() -> AppContainer {
+        #if DEBUG
+            if UITestMode.isOn {
+                return PreviewDeps.container
+            }
+        #endif
+
         let container: ModelContainer
 
         do {

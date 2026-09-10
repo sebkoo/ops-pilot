@@ -40,6 +40,7 @@ struct IssueListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityIdentifier("newIssueButton")
                 }
             }
             .sheet(isPresented: $showNewIssue) {
