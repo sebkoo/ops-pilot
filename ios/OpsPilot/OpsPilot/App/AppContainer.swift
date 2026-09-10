@@ -14,43 +14,57 @@ final class AppContainer {
     let modelContainer: ModelContainer
     let apiClient: APIClient
     let authSession: AuthSession
+    let syncEngine: SyncEngine
 
-    init(issueRepository: any IssueRepository,
-         modelContainer: ModelContainer,
-         apiClient: APIClient,
-         authSession: AuthSession
+    init(
+        issueRepository: any IssueRepository,
+        modelContainer: ModelContainer,
+        apiClient: APIClient,
+        authSession: AuthSession,
+        syncEngine: SyncEngine
     ) {
         self.issueRepository = issueRepository
         self.modelContainer = modelContainer
         self.apiClient = apiClient
         self.authSession = authSession
+        self.syncEngine = syncEngine
     }
 
     static func live() -> AppContainer {
         let container: ModelContainer
         do {
-            container = try ModelContainer(for: IssueEntity.self)
+            container = try AppSchema.makeContainer()
         } catch {
             fatalError("Cannot open database: \(error)")
         }
-        seedIfEmpty(context: container.mainContext)
-        let client = APIClient(baseURL: AppConfig.apiBaseURL)
+        let client = APIClient(
+            baseURL: AppConfig.apiBaseURL,
+            transport: LiveTransport()
+        )
         let auth = AuthSession(client: client)
+        let local = SwiftDataIssueRepository(context: container.mainContext)
+        let engine = SyncEngine(
+            context: container.mainContext,
+            local: local,
+            client: client
+        )
+        engine.start()
+        auth.onSignedOut = { reason in
+            if reason == .user {
+                engine.reset()
+            }
+        }
+        auth.onSignedIn = { _ in engine.reset() }
 
         return AppContainer(
-            issueRepository: RemoteIssueRepository(client: client),
+            issueRepository: SyncingIssueRepository(
+                local: local,
+                engine: engine
+            ),
             modelContainer: container,
             apiClient: client,
-            authSession: auth
+            authSession: auth,
+            syncEngine: engine
         )
-    }
-
-    private static func seedIfEmpty(context: ModelContext) {
-        let count = (try? context.fetchCount(FetchDescriptor<IssueEntity>())) ?? 0
-        guard count == 0 else { return }
-        for issue in SampleData.issues {
-            context.insert(IssueEntity(from: issue))
-        }
-        try? context.save()
     }
 }
