@@ -10,7 +10,6 @@ const EnvSchema = z.object({
 });
 
 export type Config = z.infer<typeof EnvSchema>;
-
 export const config: Config = {} as Config;
 
 export function initConfig(env: NodeJS.ProcessEnv = process.env): Config {

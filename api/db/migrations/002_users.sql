@@ -17,4 +17,5 @@ create table if not exists issue_events (
   payload jsonb,
   created_at timestamptz not null default now()
 );
+
 create index if not exists issue_events_issue_idx on issue_events (issue_id, id);

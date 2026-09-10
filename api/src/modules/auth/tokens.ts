@@ -10,6 +10,7 @@ export interface AccessClaims {
   iat: number;
   exp: number;
 }
+
 export interface RefreshClaims {
   sub: string;
   type: 'refresh';

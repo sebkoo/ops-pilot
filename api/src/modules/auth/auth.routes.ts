@@ -1,10 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { AppError } from '../../errors.js';
+import { type AuthEnv, requireAuth } from '../../middleware/auth.js';
 import { validate } from '../../validate.js';
-import { requireAuth, type AuthEnv } from '../../middleware/auth.js';
-import { hashPassword, verifyPassword } from './password.js';
-import { issueTokens, verifyRefresh } from './tokens.js';
 import {
   countManagers,
   countUsers,
@@ -14,6 +12,8 @@ import {
   softDeleteUser,
   toPublicUser,
 } from './auth.repo.js';
+import { hashPassword, verifyPassword } from './password.js';
+import { issueTokens, verifyRefresh } from './tokens.js';
 
 const CredentialsSchema = z.object({
   email: z.email().transform((value) => value.toLowerCase()),
