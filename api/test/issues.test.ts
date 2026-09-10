@@ -5,7 +5,7 @@ import { closePool } from '../src/db.js';
 
 let headers: Record<string, string> = { 'content-type': 'application/json' };
 
-const json = (body: unknown, method = 'POST') => ({
+const json = (body: unknown, method = 'POST'): RequestInit => ({
   method,
   headers,
   body: JSON.stringify(body),
@@ -22,6 +22,7 @@ beforeAll(async () => {
   const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
   headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
 });
+
 afterAll(async () => {
   await closePool();
 });

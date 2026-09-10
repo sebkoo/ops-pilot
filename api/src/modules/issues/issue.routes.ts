@@ -82,6 +82,7 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
   const patch = c.req.valid('json');
   const current = await getIssue(c.req.param('id'));
   const user = c.get('user');
+
   if (patch.assignee !== undefined && user.role !== 'manager')
     throw new AppError(403, 'forbidden', 'Only managers can assign issues.');
   if (user.role !== 'manager' && current?.createdBy !== user.id)
@@ -90,7 +91,6 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
       'not_owner',
       'You can only modify issues you created.',
     );
-
   if (!current) throw new AppError(404, 'not_found', `Issue not found`);
   if (
     patch.status &&
@@ -103,6 +103,7 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
       `Cannot transition from ${current.status} to ${patch.status}`,
     );
   }
+
   const result = await updateIssue(current.id, patch);
   if (result.kind === 'not_found')
     throw new AppError(404, 'not_found', `Issue not found`);
@@ -115,6 +116,7 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
         current: result.current,
       },
     );
+
   await recordEvent(
     current.id,
     user.id,
@@ -123,5 +125,6 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
       : 'issue_updated',
     { from: current.status, patch },
   );
+
   return c.json(result.issue);
 });

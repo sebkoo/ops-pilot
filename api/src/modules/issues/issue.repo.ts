@@ -70,7 +70,9 @@ export async function listIssues(
   const rows = await query<IssueRow & { created_at_exact: string }>(
     `SELECT ${COLUMNS}, created_at::text AS created_at_exact FROM issues
      WHERE ($1::text IS NULL OR status = $1)
-     AND ($2::timestamptz IS NULL OR (created_at, id) < ($2::timestamptz, $3::uuid))
+     AND ($2::timestamptz IS NULL 
+      OR (created_at, id) < ($2::timestamptz, $3::uuid)
+     )
      ORDER BY created_at DESC, id DESC
      LIMIT $4`,
     [

@@ -10,6 +10,7 @@ export const app = new Hono();
 
 app.use('*', requestId());
 app.use('*', logger());
+
 app.get('/health', (c) =>
   c.json({
     ok: true,
@@ -17,8 +18,11 @@ app.get('/health', (c) =>
     time: new Date().toISOString(),
   }),
 );
+
 app.route('/auth', authRoutes);
 app.route('/issues', issueRoutes);
 app.route('/sync', syncRoutes);
+
 app.onError(onError);
+
 app.notFound(onNotFound);

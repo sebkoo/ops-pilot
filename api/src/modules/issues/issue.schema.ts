@@ -1,8 +1,19 @@
 import { z } from 'zod';
 
-export const IssueCategory = z.enum(['equipment', 'safety', 'cleanliness', 'inventory', 'other']);
+export const IssueCategory = z.enum([
+  'equipment',
+  'safety',
+  'cleanliness',
+  'inventory',
+  'other',
+]);
 export const IssuePriority = z.enum(['low', 'medium', 'high', 'critical']);
-export const IssueStatus = z.enum(['open', 'assigned', 'in_progress', 'resolved']);
+export const IssueStatus = z.enum([
+  'open',
+  'assigned',
+  'in_progress',
+  'resolved',
+]);
 
 export const ALLOWED_TRANSITIONS: Record<
   z.infer<typeof IssueStatus>,
@@ -23,7 +34,6 @@ export const CreateIssueSchema = z.object({
   status: IssueStatus.default('open'),
   location: z.string().trim().min(1).max(200),
 });
-
 export const UpdateIssueSchema = z.object({
   version: z.number().int().positive(),
   title: z.string().trim().min(1).max(120).optional(),
@@ -34,7 +44,6 @@ export const UpdateIssueSchema = z.object({
   location: z.string().trim().min(1).max(200).optional(),
   assignee: z.string().trim().max(80).nullish().optional(),
 });
-
 export const ListIssuesQuerySchema = z.object({
   status: IssueStatus.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
