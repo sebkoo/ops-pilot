@@ -6,7 +6,6 @@ export class AppError extends Error {
   readonly status: ContentfulStatusCode;
   readonly code: string;
   readonly details: unknown;
-
   constructor(
     status: ContentfulStatusCode,
     code: string,
@@ -47,6 +46,7 @@ export const onError: ErrorHandler = (err, c) => {
     );
   }
   console.error(err);
+
   return c.json(
     {
       error: {

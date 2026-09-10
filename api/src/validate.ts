@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator';
 import type { ValidationTargets } from 'hono';
-import { ZodType } from 'zod';
+import type { ZodType } from 'zod';
 
 export const validate = <
   Schema extends ZodType,
