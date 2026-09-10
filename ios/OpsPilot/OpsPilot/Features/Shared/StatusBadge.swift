@@ -15,7 +15,9 @@ struct StatusBadge: View {
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(status.tint.opacity(0.15), in: Capsule())
+            .background(status.tint.opacity(0.15),
+                        in: Capsule()
+            )
             .foregroundStyle(status.tint)
     }
 }

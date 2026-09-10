@@ -16,6 +16,7 @@ struct IssueRowView: View {
                 .font(.title3)
                 .foregroundStyle(issue.priority.color)
                 .frame(width: 28)
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(issue.title)
                     .font(.headline)

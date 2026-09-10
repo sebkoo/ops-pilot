@@ -17,7 +17,6 @@ extension IssuePriority {
         }
     }
 }
-
 extension IssueStatus {
     var tint: Color {
         switch self {

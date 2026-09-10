@@ -9,6 +9,8 @@ import SwiftUI
 
 struct IssueListView: View {
     @Environment(AuthSession.self) private var auth
+    @Environment(SyncEngine.self) private var engine
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var viewModel: IssueListViewModel
     @State private var showNewIssue = false
@@ -46,13 +48,37 @@ struct IssueListView: View {
             }
             .overlay {
                 if viewModel.visibleIssues.isEmpty && !viewModel.isLoading {
-                    ContentUnavailableView("No issues", systemImage: "checkmark.circle", description: Text("Tap + to create your first issue."))
+                    ContentUnavailableView(
+                        "No issues",
+                        systemImage: "checkmark.circle",
+                        description: Text("Tap + to create your first issue.")
+                    )
                 }
             }
-            .refreshable { await viewModel.load() }
-            .task { await viewModel.load() }
-            .alert("Something went wrong", isPresented: hasError) {
-                Button("OK", role: .cancel) { }
+            .safeAreaInset(edge: .top) {
+                SyncStatusBar(engine: engine)
+            }
+            .refreshable {
+                await engine.sync()
+                await viewModel.load()
+            }
+            .task {
+                await viewModel.load()
+                await engine.sync()
+            }
+            .onChange(of: engine.lastSyncedAt) {
+                Task { await viewModel.load() }
+            }
+            .onChange(of: scenePhase) {
+                if scenePhase == .active {
+                    Task { await engine.sync() }
+                }
+            }
+            .alert(
+                "Something went wrong",
+                isPresented: hasError
+            ) {
+                Button("OK", role: .cancel) {}
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
@@ -93,4 +119,5 @@ struct IssueListView: View {
 #Preview {
     IssueListView(repository: InMemoryIssueRepository())
         .environment(PreviewDeps.auth)
+        .environment(PreviewDeps.sync)
 }
