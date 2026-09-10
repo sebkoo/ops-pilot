@@ -13,12 +13,19 @@ extension JSONDecoder {
         decoder.dateDecodingStrategy = .custom { decoder in
             let text = try decoder.singleValueContainer().decode(String.self)
             if let date = try? Date.ISO8601FormatStyle(includingFractionalSeconds: true)
-                .parse(text) { return date }
+                .parse(text)
+            {
+                return date
+            }
             if let date = try? Date.ISO8601FormatStyle()
-                .parse(text) { return date }
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "invalid date format: \(text)")
+                .parse(text)
+            {
+                return date
+            }
+            throw DecodingError.dataCorrupted(
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "invalid date format: \(text)")
             )
         }
         return decoder

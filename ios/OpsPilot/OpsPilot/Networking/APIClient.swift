@@ -11,7 +11,8 @@ struct Endpoint {
     var method: String
     var path: String
     var query: [URLQueryItem] = []
-    var body: Data? = nil
+    var body: Data?
+    var headers: [String: String] = [:]
     var requiresAuth = true
 }
 
@@ -42,15 +43,15 @@ private struct ServerErrorBody: Decodable {
 @MainActor
 final class APIClient {
     private let baseURL: URL
-    private let session: URLSession
+    private let transport: any HTTPTransport
     private let decoder = JSONDecoder.api
     private let encoder = JSONEncoder.api
     var accessTokenProvider: () -> String? = { nil }
     var onUnauthorized: (() async -> Bool)?
 
-    init(baseURL: URL, session: URLSession = .shared) {
+    init(baseURL: URL, transport: any HTTPTransport) {
         self.baseURL = baseURL
-        self.session = session
+        self.transport = transport
     }
 
     func encode<Body: Encodable>(_ body: Body) throws -> Data {
@@ -62,6 +63,11 @@ final class APIClient {
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
+            #if DEBUG
+            print("❌ DECODE \(Response.self) ← \(endpoint.method) /\(endpoint.path)")
+            print("   \(error)")
+            print("📦 \(String(decoding: data, as: UTF8.self))")
+            #endif
             throw APIError.decoding(error)
         }
     }
@@ -72,51 +78,64 @@ final class APIClient {
 
     private func perform(_ endpoint: Endpoint, allowRetry: Bool) async throws -> Data {
         let request = try makeRequest(endpoint)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await transport.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+
         if http.statusCode == 401,
-           allowRetry,
-           endpoint.requiresAuth,
-           let refresh = onUnauthorized,
-           await refresh() {
+            allowRetry,
+            endpoint.requiresAuth,
+            let refresh = onUnauthorized,
+            await refresh()
+        {
             return try await perform(endpoint, allowRetry: false)
         }
+
         guard (200..<300).contains(http.statusCode) else {
             let body = try? decoder.decode(ServerErrorBody.self, from: data)
             throw APIError.http(
                 status: http.statusCode,
                 code: body?.error.code ?? "http_\(http.statusCode)",
-                message: body?.error.message ?? "Request failed (\(http.statusCode)"
+                message: body?.error.message ?? "Request failed (\(http.statusCode))"
             )
         }
         return data
     }
 
     private func makeRequest(_ endpoint: Endpoint) throws -> URLRequest {
-        guard var components = URLComponents(
-            url: baseURL.appending(path: endpoint.path),
-            resolvingAgainstBaseURL: false)
+        guard
+            var components = URLComponents(
+                url: baseURL.appending(path: endpoint.path),
+                resolvingAgainstBaseURL: false)
         else { throw APIError.invalidURL }
+
         if !endpoint.query.isEmpty {
             components.queryItems = endpoint.query
         }
         guard let url = components.url else {
             throw APIError.invalidURL
         }
+
         var request = URLRequest(url: url)
         request.httpMethod = endpoint.method
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        for (name, value) in endpoint.headers {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
+
         if let body = endpoint.body {
             request.httpBody = body
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         if endpoint.requiresAuth,
-           let token = accessTokenProvider() {
+            let token = accessTokenProvider()
+        {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
+
         return request
     }
 }

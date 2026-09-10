@@ -4,7 +4,7 @@ Offline-first field-operations app for store staff: report an issue on the floor
 
 ![Demo](docs/demo.gif)
 
-**Stack** SwiftUI · SwiftData · Node/TypeScript · PostgreSQL — **Live** runs locally today (public API after Phase 8) — **Contact** you@example.com · [LinkedIn](https://linkedin.com/in/you)
+**Stack** SwiftUI · SwiftData · Node/TypeScript · PostgreSQL — **Live** runs locally today (public API after Phase 8) — **Contact** seb.m.koo@gmail.com · [LinkedIn](https://linkedin.com/in/you)
 
 <details><summary><b>Architecture (today)</b></summary>
 
