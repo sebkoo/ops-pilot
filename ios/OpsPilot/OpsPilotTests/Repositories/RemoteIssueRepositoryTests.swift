@@ -33,18 +33,21 @@ struct RemoteIssueRepositoryTests {
 
     @Test("Calls the server-defined response shape and extracts only the payload")
     func speaksTheServerShape() async throws {
-        print(TestJSON.list(
-            [sample("A"), sample("B")],
-            nextCursor: "next-page")
+        print(
+            TestJSON.list(
+                [sample("A"), sample("B")],
+                nextCursor: "next-page")
         )
         let draft = sample("Wet Floor")
         var serverCopy = draft
         serverCopy.assignee = "Minsoo Kim"
         await stub.on(
             "GET /issues",
-            .json(200,TestJSON.list(
-                [sample("A"), sample("B")],
-                nextCursor: "next-page")
+            .json(
+                200,
+                TestJSON.list(
+                    [sample("A"), sample("B")],
+                    nextCursor: "next-page")
             )
         )
         await stub.on(

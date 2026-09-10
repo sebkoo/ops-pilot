@@ -64,9 +64,9 @@ final class APIClient {
             return try decoder.decode(Response.self, from: data)
         } catch {
             #if DEBUG
-            print("❌ DECODE \(Response.self) ← \(endpoint.method) /\(endpoint.path)")
-            print("   \(error)")
-            print("📦 \(String(decoding: data, as: UTF8.self))")
+                print("❌ DECODE \(Response.self) ← \(endpoint.method) /\(endpoint.path)")
+                print("   \(error)")
+                print("📦 \(String(decoding: data, as: UTF8.self))")
             #endif
             throw APIError.decoding(error)
         }

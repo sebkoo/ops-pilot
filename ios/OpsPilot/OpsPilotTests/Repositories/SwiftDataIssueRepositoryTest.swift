@@ -51,10 +51,36 @@ struct SwiftDataIssueRepositoryTest {
         var edited = saved
         edited.status = .assigned
         let v2 = try await repository.update(edited)
-        
+
         #expect(v2.version == 2)
         await #expect(throws: RepositoryError.self) {
             _ = try await repository.update(saved)
         }
+    }
+
+    @Test("Only the server assigns versions")
+    func syncExtensionsKeepTheServerInCharge() async throws {
+        var server = Issue.new(
+            title: "Original Server",
+            details: "",
+            category: .other,
+            priority: .low,
+            location: "A"
+        )
+        try repository.upsert(server)
+
+        server.title = "Updated by Server"
+        server.version = 7
+        try repository.upsert(server)
+
+        let all = try await repository.fetchAll()
+        #expect(all.count == 1)
+        #expect(all.first?.title == "Updated by Server")
+        #expect(all.first?.version == 7)
+
+        var mine = try #require(all.first)
+        mine.status = .assigned
+        let edited = try repository.applyLocalEdit(mine)
+        #expect(edited.version == 7)
     }
 }

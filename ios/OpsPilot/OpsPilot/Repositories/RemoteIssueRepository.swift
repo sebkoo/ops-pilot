@@ -26,8 +26,8 @@ final class RemoteIssueRepository: IssueRepository {
                 Endpoint(
                     method: "GET",
                     path: "issues",
-                    query: [URLQueryItem(name: "limit", value: "100")]
-                ), as: Page.self
+                    query: [URLQueryItem(name: "limit", value: "100")]),
+                as: Page.self
             ).items
         }
     }
@@ -38,8 +38,8 @@ final class RemoteIssueRepository: IssueRepository {
                 try await client.send(
                     Endpoint(
                         method: "GET",
-                        path: "issues/\(id.uuidString.lowercased())"
-                    ), as: Issue.self)
+                        path: "issues/\(id.uuidString.lowercased())"),
+                    as: Issue.self)
             }
         } catch RepositoryError.notFound {
             return nil
@@ -54,8 +54,8 @@ final class RemoteIssueRepository: IssueRepository {
                 Endpoint(
                     method: "POST",
                     path: "issues",
-                    body: body
-                ), as: Issue.self)
+                    body: body),
+                as: Issue.self)
         }
     }
 
@@ -64,7 +64,10 @@ final class RemoteIssueRepository: IssueRepository {
 
         return try await mapError {
             try await client.send(
-                Endpoint(method: "PATCH", path: "issues/\(issue.id.uuidString.lowercased())", body: body),
+                Endpoint(
+                    method: "PATCH",
+                    path: "issues/\(issue.id.uuidString.lowercased())",
+                    body: body),
                 as: Issue.self)
         }
     }

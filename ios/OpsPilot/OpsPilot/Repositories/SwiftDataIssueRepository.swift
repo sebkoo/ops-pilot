@@ -36,12 +36,10 @@ final class SwiftDataIssueRepository: IssueRepository {
     }
 
     func update(_ issue: Issue) async throws -> Issue {
-        guard let entity = try entity(id: issue.id) else {
-            throw RepositoryError.notFound
-        }
-        guard entity.version == issue.version else {
-            throw RepositoryError.conflict
-        }
+        guard let entity = try entity(id: issue.id)
+        else { throw RepositoryError.notFound }
+        guard entity.version == issue.version
+        else { throw RepositoryError.conflict }
 
         entity.apply(issue)
         entity.version += 1
