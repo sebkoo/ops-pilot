@@ -41,17 +41,19 @@ final class IssueListViewModel {
         }
     }
 
-    func create(title: String,
-                details: String,
-                category: IssueCategory,
-                priority: IssuePriority,
-                location: String
+    func create(
+        title: String,
+        details: String,
+        category: IssueCategory,
+        priority: IssuePriority,
+        location: String
     ) async {
-        let draft = Issue.new(title: title,
-                              details: details,
-                              category: category,
-                              priority: priority,
-                              location: location
+        let draft = Issue.new(
+            title: title,
+            details: details,
+            category: category,
+            priority: priority,
+            location: location
         )
         do {
             let saved = try await repository.create(draft)
@@ -78,8 +80,10 @@ final class IssueListViewModel {
     }
 
     private func replace(_ issue: Issue) {
-        guard let index = issues.firstIndex(where: {
-            $0.id == issue.id })
+        guard
+            let index = issues.firstIndex(where: {
+                $0.id == issue.id
+            })
         else { return }
         issues[index] = issue
     }
