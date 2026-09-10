@@ -32,6 +32,7 @@ struct SwiftDataIssueRepositoryTest {
         )
         _ = try await repository.create(draft)
         let all = try await repository.fetchAll()
+
         #expect(all.count == 1)
         #expect(all.first?.id == draft.id)
         #expect(all.first?.category == .safety)
@@ -50,6 +51,7 @@ struct SwiftDataIssueRepositoryTest {
         var edited = saved
         edited.status = .assigned
         let v2 = try await repository.update(edited)
+        
         #expect(v2.version == 2)
         await #expect(throws: RepositoryError.self) {
             _ = try await repository.update(saved)

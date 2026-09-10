@@ -32,6 +32,7 @@ struct IssueListViewModelTests {
         await viewModel.load()
         let open = try #require(viewModel.issues.first { $0.status == .open })
         await viewModel.advanceStatus(of: open)
+
         #expect(viewModel.issue(id: open.id)?.status == .assigned)
         #expect(viewModel.issue(id: open.id)?.version == 2)
     }
@@ -46,6 +47,7 @@ struct IssueListViewModelTests {
             })
         await viewModel.advanceStatus(of: stale)
         await viewModel.advanceStatus(of: stale)
+        
         #expect(viewModel.errorMessage?.contains("issue was updated") == true)
     }
 }
