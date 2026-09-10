@@ -32,6 +32,7 @@ final class AppContainer {
 
     static func live() -> AppContainer {
         let container: ModelContainer
+
         do {
             container = try AppSchema.makeContainer()
         } catch {
