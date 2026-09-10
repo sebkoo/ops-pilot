@@ -6,6 +6,7 @@
 //
 
 import Testing
+
 @testable import OpsPilot
 
 @MainActor
@@ -14,11 +15,12 @@ struct IssueListViewModelTests {
     func createdPutsIssueFirst() async throws {
         let repository = InMemoryIssueRepository(seed: [])
         let viewModel = IssueListViewModel(repository: repository)
-        await viewModel.create(title: "Freezer temperature issue",
-                               details: "",
-                               category: .equipment,
-                               priority: .high,
-                               location: "Store #128"
+        await viewModel.create(
+            title: "Freezer temperature issue",
+            details: "",
+            category: .equipment,
+            priority: .high,
+            location: "Store #128"
         )
         #expect(viewModel.issues.count == 1)
         #expect(viewModel.issues.first?.title == "Freezer temperature issue")
@@ -38,9 +40,10 @@ struct IssueListViewModelTests {
     func staleVersionIsRejected() async throws {
         let viewModel = IssueListViewModel(repository: InMemoryIssueRepository())
         await viewModel.load()
-        let stale = try #require(viewModel.issues.first {
-            $0.status == .open
-        })
+        let stale = try #require(
+            viewModel.issues.first {
+                $0.status == .open
+            })
         await viewModel.advanceStatus(of: stale)
         await viewModel.advanceStatus(of: stale)
         #expect(viewModel.errorMessage?.contains("issue was updated") == true)

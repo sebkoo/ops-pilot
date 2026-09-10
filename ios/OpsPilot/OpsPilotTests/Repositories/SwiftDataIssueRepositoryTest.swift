@@ -5,8 +5,9 @@
 //  Created by Ben Koo on 9/2/26.
 //
 
-import Testing
 import SwiftData
+import Testing
+
 @testable import OpsPilot
 
 @MainActor
@@ -22,11 +23,12 @@ struct SwiftDataIssueRepositoryTest {
 
     @Test("A saved issue can be read back")
     func roundTrip() async throws {
-        let draft = Issue.new(title: "test",
-                              details: "content",
-                              category: .safety,
-                              priority: .low,
-                              location: "A"
+        let draft = Issue.new(
+            title: "test",
+            details: "content",
+            category: .safety,
+            priority: .low,
+            location: "A"
         )
         _ = try await repository.create(draft)
         let all = try await repository.fetchAll()
@@ -37,11 +39,12 @@ struct SwiftDataIssueRepositoryTest {
 
     @Test("Updating an issue increments the version, and stale versions are rejected")
     func updateBumpsVersionAndRejectStale() async throws {
-        let draft = Issue.new(title: "A",
-                              details: "",
-                              category: .other,
-                              priority: .medium,
-                              location: "B"
+        let draft = Issue.new(
+            title: "A",
+            details: "",
+            category: .other,
+            priority: .medium,
+            location: "B"
         )
         let saved = try await repository.create(draft)
         var edited = saved
