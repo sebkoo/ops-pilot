@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { initConfig } from '../src/config.js';
 import { app } from '../src/app.js';
+import { initConfig } from '../src/config.js';
 import { closePool } from '../src/db.js';
 
 let headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -14,10 +14,10 @@ const read = <T>(res: Response) => res.json() as Promise<T>;
 
 beforeAll(async () => {
   initConfig();
-  const email = `test-${Date.now()}@example.com`;
+  const email = `test-${Date.now()}@test.com`;
   const res = await app.request(
     '/auth/register',
-    json({ email, password: 'correct-horse-battery', displayName: 'tester' }),
+    json({ email, password: 'password', displayName: 'Tester' }),
   );
   const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
   headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
