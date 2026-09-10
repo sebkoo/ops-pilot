@@ -21,8 +21,19 @@ interface IssueRow {
   updated_at: string;
 }
 
-const COLUMNS =
-  'id, title, details, category, priority, status, location, assignee, ai_summary, version, created_by, created_at, updated_at';
+const COLUMNS = `id, 
+                 title, 
+                 details, 
+                 category, 
+                 priority, 
+                 status, 
+                 location, 
+                 assignee, 
+                 ai_summary, 
+                 version, 
+                 created_by, 
+                 created_at, 
+                 updated_at`;
 
 function toIssue(row: IssueRow): Issue {
   return {
@@ -79,7 +90,9 @@ export async function listIssues(
 
 export async function getIssue(id: string): Promise<Issue | null> {
   const rows = await query<IssueRow>(
-    `SELECT ${COLUMNS} FROM issues WHERE id = $1`,
+    `SELECT ${COLUMNS} 
+     FROM issues 
+     WHERE id = $1`,
     [id],
   );
   const row = rows[0];
@@ -88,10 +101,11 @@ export async function getIssue(id: string): Promise<Issue | null> {
 
 export async function insertIssue(
   input: CreateIssueInput & { id: string; createdBy: string },
-): Promise<Issue> {
+): Promise<{ issue: Issue; created: boolean }> {
   const rows = await query<IssueRow>(
-    `INSERT INTO issues (id, title, details, category, priority, location, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO issues (id, title, details, category, priority, status, location, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (id) DO NOTHING
      RETURNING ${COLUMNS}`,
     [
       input.id,
@@ -99,13 +113,17 @@ export async function insertIssue(
       input.details,
       input.category,
       input.priority,
+      input.status,
       input.location,
       input.createdBy,
     ],
   );
   const row = rows[0];
-  if (!row) throw new Error('INSERT did not return a row.');
-  return toIssue(row);
+  if (row) return { issue: toIssue(row), created: true };
+  const existing = await getIssue(input.id);
+  if (!existing)
+    throw new Error('The INSERT conflicted, but no existing row was found.');
+  return { issue: existing, created: false };
 }
 
 export type UpdateResult =
@@ -152,4 +170,29 @@ export async function updateIssue(
   const current = await getIssue(id);
 
   return current ? { kind: 'conflict', current } : { kind: 'not_found' };
+}
+
+export interface SyncCursor {
+  updatedAt: string;
+  id: string;
+}
+
+export async function listChangedSince(
+  after: SyncCursor | null,
+  limit: number,
+): Promise<{ items: Issue[]; last: SyncCursor | null }> {
+  const rows = await query<IssueRow & { updated_at_exact: string }>(
+    `SELECT ${COLUMNS}, updated_at::text 
+     AS updated_at_exact 
+     FROM issues
+     WHERE ($1::timestamptz IS NULL OR (updated_at, id) > ($1::timestamptz, $2::uuid))
+     ORDER BY updated_at ASC, id ASC
+     LIMIT $3`,
+    [after?.updatedAt ?? null, after?.id ?? null, limit],
+  );
+  const tail = rows.at(-1);
+  return {
+    items: rows.map(toIssue),
+    last: tail ? { updatedAt: tail.updated_at_exact, id: tail.id } : null,
+  };
 }

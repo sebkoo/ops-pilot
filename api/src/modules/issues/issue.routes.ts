@@ -1,25 +1,27 @@
 import { Hono } from 'hono';
-import { AppError } from '../../errors.js';
-import { validate } from '../../validate.js';
 import { z } from 'zod';
-import { requireAuth, type AuthEnv } from '../../middleware/auth.js';
+import { AppError } from '../../errors.js';
+import { type AuthEnv, requireAuth } from '../../middleware/auth.js';
+import { idempotency } from '../../middleware/idempotency.js';
+import { validate } from '../../validate.js';
 import { recordEvent } from './event.repo.js';
-import {
-  ALLOWED_TRANSITIONS,
-  CreateISsueSchema,
-  ListIssuesQuerySchema,
-  UpdateIssueSchema,
-} from './issue.schema.js';
+import type { Cursor } from './issue.repo.js';
 import {
   getIssue,
   insertIssue,
   listIssues,
   updateIssue,
 } from './issue.repo.js';
-import type { Cursor } from './issue.repo.js';
+import {
+  ALLOWED_TRANSITIONS,
+  CreateIssueSchema,
+  ListIssuesQuerySchema,
+  UpdateIssueSchema,
+} from './issue.schema.js';
 
 export const issueRoutes = new Hono<AuthEnv>();
 issueRoutes.use('*', requireAuth);
+issueRoutes.use('*', idempotency);
 
 const TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/;
@@ -36,7 +38,7 @@ function decodeCursor(cursor: string): Cursor {
   try {
     const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
     return CursorSchema.parse(JSON.parse(decoded));
-  } catch (err) {
+  } catch {
     throw new AppError(400, 'bad_cursor', 'cursor is not valid');
   }
 }
@@ -61,17 +63,19 @@ issueRoutes.get('/:id', async (c) => {
   return c.json(issue);
 });
 
-issueRoutes.post('/', validate('json', CreateISsueSchema), async (c) => {
+issueRoutes.post('/', validate('json', CreateIssueSchema), async (c) => {
   const body = c.req.valid('json');
-  const issue = await insertIssue({
+  const { issue, created } = await insertIssue({
     ...body,
     id: body.id ?? crypto.randomUUID(),
     createdBy: c.get('user').id,
   });
-  await recordEvent(issue.id, c.get('user').id, 'issue_created', {
-    title: issue.title,
-  });
-  return c.json(issue, 201);
+  if (created)
+    await recordEvent(issue.id, c.get('user').id, 'issue_created', {
+      title: issue.title,
+      status: issue.status,
+    });
+  return c.json(issue, created ? 201 : 200);
 });
 
 issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
@@ -106,8 +110,10 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
     throw new AppError(
       409,
       'version_conflict',
-      `Issue has was updated elsewhere first.`,
-      { current: result.current },
+      `Someone else updated this issue first.`,
+      {
+        current: result.current,
+      },
     );
   await recordEvent(
     current.id,
