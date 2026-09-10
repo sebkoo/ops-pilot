@@ -24,5 +24,4 @@ app.route('/issues', issueRoutes);
 app.route('/sync', syncRoutes);
 
 app.onError(onError);
-
 app.notFound(onNotFound);

@@ -25,6 +25,7 @@ issueRoutes.use('*', idempotency);
 
 const TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/;
+
 const CursorSchema = z.object({
   createdAt: z.string().regex(TIMESTAMP),
   id: z.uuid(),

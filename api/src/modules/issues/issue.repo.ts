@@ -187,7 +187,8 @@ export async function listChangedSince(
     `SELECT ${COLUMNS}, updated_at::text 
      AS updated_at_exact 
      FROM issues
-     WHERE ($1::timestamptz IS NULL OR (updated_at, id) > ($1::timestamptz, $2::uuid))
+     WHERE ($1::timestamptz IS NULL 
+      OR (updated_at, id) > ($1::timestamptz, $2::uuid))
      ORDER BY updated_at ASC, id ASC
      LIMIT $3`,
     [after?.updatedAt ?? null, after?.id ?? null, limit],
