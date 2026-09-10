@@ -37,6 +37,7 @@ final class AppContainer {
         } catch {
             fatalError("Cannot open database: \(error)")
         }
+
         let client = APIClient(
             baseURL: AppConfig.apiBaseURL,
             transport: LiveTransport()
@@ -48,6 +49,7 @@ final class AppContainer {
             local: local,
             client: client
         )
+        
         engine.start()
         auth.onSignedOut = { reason in
             if reason == .user {
