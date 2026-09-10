@@ -28,8 +28,10 @@ struct IssueDetailView: View {
                     LabeledContent("Status") {
                         StatusBadge(status: issue.status)
                     }
-                    LabeledContent("Created", value: issue.createdAt
-                        .formatted(date: .abbreviated, time: .shortened)
+                    LabeledContent(
+                        "Created",
+                        value: issue.createdAt
+                            .formatted(date: .abbreviated, time: .shortened)
                     )
                     LabeledContent("Version", value: "v\(issue.version)")
                 }
@@ -40,8 +42,9 @@ struct IssueDetailView: View {
                                 await viewModel.advanceStatus(of: issue)
                             }
                         } label: {
-                            Label("Advance to \(next.label)",
-                                  systemImage: "arrow.right.circle.fill"
+                            Label(
+                                "Advance to \(next.label)",
+                                systemImage: "arrow.right.circle.fill"
                             )
                         }
                     }
@@ -50,8 +53,9 @@ struct IssueDetailView: View {
             .navigationTitle(issue.title)
             .navigationBarTitleDisplayMode(.inline)
         } else {
-            ContentUnavailableView("No issue found",
-                                   systemImage: "questionmark.folder"
+            ContentUnavailableView(
+                "No issue found",
+                systemImage: "questionmark.folder"
             )
         }
     }
@@ -59,10 +63,11 @@ struct IssueDetailView: View {
 
 #Preview {
     NavigationStack {
-        IssueDetailView(issueID: SampleData.issues[0].id,
-                        viewModel: IssueListViewModel(
-                            repository: InMemoryIssueRepository()
-                        )
-        ).task { }
+        IssueDetailView(
+            issueID: SampleData.issues[0].id,
+            viewModel: IssueListViewModel(
+                repository: InMemoryIssueRepository()
+            )
+        ).task {}
     }
 }
