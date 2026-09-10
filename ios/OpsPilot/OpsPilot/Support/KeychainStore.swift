@@ -8,13 +8,21 @@
 import Foundation
 import Security
 
-struct KeychainStore {
+protocol TokenStore {
+    func save(_ value: String, for key: String)
+    func read(_ key: String) -> String?
+    func delete(_ key: String)
+}
+
+struct KeychainStore: TokenStore {
     let service: String
 
     private func baseQuery(for key: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrServer as String: service,
-         kSecAttrAccount as String: key]
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrServer as String: service,
+            kSecAttrAccount as String: key,
+        ]
     }
 
     func save(_ value: String, for key: String) {
@@ -30,9 +38,11 @@ struct KeychainStore {
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
+
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data
+            let data = item as? Data
         else { return nil }
+
         return String(data: data, encoding: .utf8)
     }
 

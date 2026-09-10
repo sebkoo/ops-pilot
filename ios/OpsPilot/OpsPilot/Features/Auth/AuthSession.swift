@@ -11,7 +11,6 @@ import Observation
 @MainActor
 @Observable
 final class AuthSession {
-
     struct User: Codable, Equatable {
         let id: UUID
         let email: String
@@ -41,13 +40,20 @@ final class AuthSession {
     var onSignedOut: ((SignOutReason) -> Void)?
 
     private let client: APIClient
-    private let keychain = KeychainStore(service: "com.bkoo.OpsPilot")
+    private let tokens: any TokenStore
+    private let defaults: UserDefaults
     private let userDefaultsKey = "auth.user"
 
-    init(client: APIClient) {
+    init(
+        client: APIClient,
+        tokens: any TokenStore = KeychainStore(service: "com.bkoo.OpsPilot"),
+        defaults: UserDefaults = .standard
+    ) {
         self.client = client
-        accessToken = keychain.read("accessToken")
-        refreshToken = keychain.read("refreshToken")
+        self.tokens = tokens
+        self.defaults = defaults
+        accessToken = tokens.read("accessToken")
+        refreshToken = tokens.read("refreshToken")
         if let data = UserDefaults.standard.data(forKey: userDefaultsKey) {
             user = try? JSONDecoder().decode(User.self, from: data)
         }
@@ -63,35 +69,42 @@ final class AuthSession {
         let body = try client.encode([
             "email": email,
             "password": password,
-            "displayName": displayName]
+            "displayName": displayName,
+        ]
         )
-        apply(try await client.send(Endpoint(
-            method: "POST",
-            path: "auth/register",
-            body: body,
-            requiresAuth: false
-        ), as: AuthResponse.self))
+        apply(
+            try await client.send(
+                Endpoint(
+                    method: "POST",
+                    path: "auth/register",
+                    body: body,
+                    requiresAuth: false
+                ), as: AuthResponse.self))
     }
 
     func login(email: String, password: String) async throws {
         let body = try client.encode(["email": email, "password": password])
-        apply(try await client.send(Endpoint(
-            method: "POST",
-            path: "auth/login",
-            body: body,
-            requiresAuth: false
-        ), as: AuthResponse.self))
+        apply(
+            try await client.send(
+                Endpoint(
+                    method: "POST",
+                    path: "auth/login",
+                    body: body,
+                    requiresAuth: false
+                ), as: AuthResponse.self))
     }
 
     func refresh() async -> Bool {
         guard let refreshToken else { return false }
         do {
             let body = try client.encode(["refreshToken": refreshToken])
-            apply(try await client.send(Endpoint(
-                method: "POST",
-                path: "auth/refresh",
-                body: body, requiresAuth: false
-            ), as: AuthResponse.self))
+            apply(
+                try await client.send(
+                    Endpoint(
+                        method: "POST",
+                        path: "auth/refresh",
+                        body: body, requiresAuth: false
+                    ), as: AuthResponse.self))
             return true
         } catch {
             logout(reason: .expired)
@@ -101,10 +114,11 @@ final class AuthSession {
 
     func deleteAccount(password: String) async throws {
         let body = try client.encode(["password": password])
-        try await client.send(Endpoint(
-            method: "DELETE",
-            path: "auth/me",
-            body: body)
+        try await client.send(
+            Endpoint(
+                method: "DELETE",
+                path: "auth/me",
+                body: body)
         )
         logout(reason: .user)
     }
@@ -113,9 +127,9 @@ final class AuthSession {
         user = nil
         accessToken = nil
         refreshToken = nil
-        keychain.delete("accessToken")
-        keychain.delete("refreshToken")
-        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+        tokens.delete("accessToken")
+        tokens.delete("refreshToken")
+        defaults.removeObject(forKey: userDefaultsKey)
         onSignedOut?(reason)
     }
 
@@ -124,8 +138,8 @@ final class AuthSession {
         user = response.user
         accessToken = response.tokens.accessToken
         refreshToken = response.tokens.refreshToken
-        keychain.save(response.tokens.accessToken, for: "accessToken")
-        keychain.save(response.tokens.refreshToken, for: "refreshToken")
+        tokens.save(response.tokens.accessToken, for: "accessToken")
+        tokens.save(response.tokens.refreshToken, for: "refreshToken")
         if let data = try? JSONEncoder().encode(response.user) {
             UserDefaults.standard.set(data, forKey: userDefaultsKey)
         }

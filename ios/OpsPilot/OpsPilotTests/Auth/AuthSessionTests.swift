@@ -31,7 +31,8 @@ struct AuthSessionTests {
                 TestJSON.auth(
                     userID: userID,
                     accessToken: "a1",
-                    refreshToken: "r1")
+                    refreshToken: "r1"
+                )
             )
         )
     }
@@ -50,11 +51,57 @@ struct AuthSessionTests {
         return session
     }
 
-    @Test(
-        "Login stores the tokens securely, and after 401 the session refreshes itself and retries the original request with the new token"
-    )
-    func <#test function name#>() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    @Test("Login stores the tokens, 401, automatic refresh, retry")
+    func loginStoresTokensAndRefreshes() async throws {
+        await stub.on(
+            "POST /auth/refresh",
+            .json(
+                200,
+                TestJSON.auth(
+                    userID: userID,
+                    accessToken: "a2",
+                    refreshToken: "r2")
+            )
+        )
+        await stub.enqueue("GET /issues", .json(401, TestJSON.error("token_expired", "Token expired")))
+        let session = try await signIn()
+        #expect(session.isSignedIn)
+        #expect(tokens.values["accessToken"] == "a2")
     }
 
+    @Test("Restores the session on launch, and signs out if token refresh also fails")
+    func restoresThenSignsOutWhenRefreshFails() async throws {
+        await stub.on(
+            "POST /auth/refresh",
+            .json(
+                401,
+                TestJSON.error(
+                    "invalid_refresh", "Please sign in again.")
+            )
+        )
+        await stub.on(
+            "GET /issues",
+            .json(
+                401,
+                TestJSON.error(
+                    "token_expired", "Token expired")
+            )
+        )
+        _ = try await signIn()
+        let session = makeSession()
+        #expect(session.isSignedIn)
+        #expect(session.user?.id == userID)
+
+        let reasons = Recorder<AuthSession.SignOutReason>()
+        session.onSignedOut = { reason in
+            reasons.append(reason)
+        }
+        await #expect(throws: APIError.self) {
+            try await client.send(Endpoint(method: "GET", path: "issues"))
+        }
+        #expect(reasons.values == [.expired])
+        #expect(session.isSignedIn == false)
+        #expect(tokens.values.isEmpty)
+        #expect(defaults.data(forKey: "auth.user") == nil)
+    }
 }

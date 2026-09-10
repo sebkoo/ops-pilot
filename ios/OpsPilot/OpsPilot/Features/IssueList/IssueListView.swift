@@ -17,7 +17,9 @@ struct IssueListView: View {
     @State private var isPresentingDeleteAccount = false
 
     init(repository: any IssueRepository) {
-        _viewModel = State(initialValue: IssueListViewModel(repository: repository))
+        _viewModel = State(
+            initialValue: IssueListViewModel(repository: repository)
+        )
     }
 
     var body: some View {

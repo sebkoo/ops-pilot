@@ -50,7 +50,7 @@ final class AppContainer {
             local: local,
             client: client
         )
-        
+
         engine.start()
         auth.onSignedOut = { reason in
             if reason == .user { engine.reset() }

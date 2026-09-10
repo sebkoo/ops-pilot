@@ -19,6 +19,7 @@ struct RootView: View {
             }
         }
         .environment(container.authSession)
+        .environment(container.syncEngine)
     }
 }
 

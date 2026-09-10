@@ -17,13 +17,11 @@ struct LoginView: View {
     @State private var errorMessage: String?
 
     private var canSubmit: Bool {
-        email.contains("@") &&
-        password.count >= 8 &&
-        (!isRegistering ||
-         !displayName
-            .trimmingCharacters(in: .whitespaces)
-            .isEmpty
-        )
+        email.contains("@") && password.count >= 8
+            && (!isRegistering
+                || !displayName
+                    .trimmingCharacters(in: .whitespaces)
+                    .isEmpty)
     }
 
     var body: some View {
@@ -50,17 +48,22 @@ struct LoginView: View {
                         Task { await submit() }
                     } label: {
                         HStack {
-                            Text(isRegistering
-                                 ? "Sign Up & Get Started"
-                                 : "Log In"
+                            Text(
+                                isRegistering
+                                    ? "Sign Up & Get Started"
+                                    : "Log In"
                             )
-                            if isBusy { Spacer(); ProgressView() }
+                            if isBusy {
+                                Spacer()
+                                ProgressView()
+                            }
                         }
                     }
                     .disabled(!canSubmit || isBusy)
-                    Button(isRegistering
-                           ? "I already have account."
-                           : "New here - Sign Up"
+                    Button(
+                        isRegistering
+                            ? "I already have account."
+                            : "New here - Sign Up"
                     ) {
                         isRegistering.toggle()
                         errorMessage = nil
