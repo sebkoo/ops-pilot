@@ -12,7 +12,11 @@ app.use('*', requestId());
 app.use('*', logger());
 
 app.get('/health', (c) =>
-  c.json({ ok: true, service: 'opspilot-api', time: new Date().toISOString() }),
+  c.json({
+    ok: true,
+    service: 'opspilot-api',
+    time: new Date().toISOString(),
+  }),
 );
 app.route('/auth', authRoutes);
 app.route('/issues', issueRoutes);
