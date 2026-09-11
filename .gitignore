@@ -17,3 +17,6 @@ coverage/
 infra/cdk.out/
 # Logs
 *.log
+
+# Claude Cowork scratch
+Claude outputs/
