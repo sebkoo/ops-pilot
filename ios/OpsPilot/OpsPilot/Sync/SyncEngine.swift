@@ -260,9 +260,9 @@ final class SyncEngine {
 
     private func pendingOperation(for issueID: UUID) throws -> PendingOperation? {
         var descriptor = FetchDescriptor<PendingOperation>(
-            predicate: #Predicate<PendingOperation> {
-                $0.issueID == issueID
-            })
+            predicate: #Predicate<PendingOperation>
+            { $0.issueID == issueID }
+        )
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
     }
@@ -275,5 +275,21 @@ final class SyncEngine {
             $0.failedAt == nil
         }.count
         failedCount = ops.count - pendingCount
+    }
+
+    func discardFailed() {
+        let dead = (try? context
+            .fetch(
+                FetchDescriptor<PendingOperation>(
+                    predicate: #Predicate<PendingOperation>
+                    { $0.failedAt != nil }
+                )
+            )
+        ) ?? []
+        for op in dead {
+            context.delete(op)
+        }
+        try? context.save()
+        refreshPendingCount()
     }
 }

@@ -179,4 +179,33 @@ struct SyncEngineTests {
         #expect(engine.pendingCount == 0)
         #expect(defaults.string(forKey: "sync.cursor") == nil)
     }
+
+    @Test("Moves permanent failures to the dead-letter queue instead of discarding them")
+    func permanentFailureGoesToDLQ() async throws {
+        try engine.enqueue(.create, issue: sample("Invalid Request"))
+        await stub.on("POST /issues",
+            .json(422, TestJSON.error("invalid_transition",
+                                      "This state transition is not allowed.")
+            )
+        )
+        await engine.sync()
+        #expect(engine.pendingCount == 0)
+        #expect(engine.failedCount == 1)
+
+        let dead = try pendingOps()
+        #expect(dead.first?.failedAt != nil)
+        #expect(dead.first?.lastError?.contains("422") == true)
+
+        await engine.sync()
+        let posts = await stub.calls.filter {
+            $0.method == "POST"
+        }
+        #expect(posts.count == 1)
+
+        engine.discardFailed()
+        #expect(engine.failedCount == 0)
+
+        let left = try pendingOps()
+        #expect(left.isEmpty)
+    }
 }

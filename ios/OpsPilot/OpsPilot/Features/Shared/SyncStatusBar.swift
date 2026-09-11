@@ -23,6 +23,13 @@ struct SyncStatusBar: View {
                     .font(.footnote.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
+            if engine.failedCount > 0 {
+                Button("\(engine.failedCount) Failed · Clear") {
+                    engine.discardFailed()
+                }
+                .font(.footnote)
+                .foregroundStyle(.red)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
