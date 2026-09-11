@@ -63,7 +63,7 @@ authRoutes.post('/login', validate('json', CredentialsSchema), async (c) => {
 authRoutes.post('/refresh', validate('json', RefreshSchema), async (c) => {
   const claims = await verifyRefresh(c.req.valid('json').refreshToken);
   const user = claims ? await findUserById(claims.sub) : null;
-  if (!user) throw new AppError(401, 'refresh_invalid', 'Plesae log in again.');
+  if (!user) throw new AppError(401, 'refresh_invalid', 'Please log in again.');
   return c.json({ user: toPublicUser(user), tokens: await issueTokens(user) });
 });
 
@@ -96,7 +96,7 @@ authRoutes.delete(
       throw new AppError(
         409,
         'last_manager',
-        'The last maanger cannot delete their account. Please create another.',
+        'The last manager cannot delete their account. Please create another.',
       );
     }
     await softDeleteUser(user.id);
