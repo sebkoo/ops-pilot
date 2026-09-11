@@ -19,6 +19,8 @@ beforeAll(async () => {
     '/auth/register',
     json({ email, password: 'password', displayName: 'Tester' }),
   );
+  if (res.status !== 201)
+    throw new Error(`register failed: ${res.status} ${await res.text()}`);
   const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
   headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
 });

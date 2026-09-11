@@ -25,11 +25,13 @@ beforeAll(async () => {
   const res = await app.request(
     '/auth/register',
     json({
-      email: `sync+${Date.now()}@exaple.com`,
+      email: `sync+${Date.now()}@test.com`,
       password: 'password',
       displayName: 'Sync Tester',
     }),
   );
+  if (res.status !== 201)
+    throw new Error(`register failed: ${res.status} ${await res.text()}`);
   const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
   headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
 });
