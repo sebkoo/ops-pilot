@@ -51,7 +51,7 @@ struct AuthSessionTests {
         return session
     }
 
-    @Test("Login stores the tokens, 401, automatic refresh, retry")
+    @Test("Login, then refresh and retry on 401")
     func loginStoresTokensAndRefreshes() async throws {
         await stub.on(
             "POST /auth/refresh",
@@ -63,10 +63,26 @@ struct AuthSessionTests {
                     refreshToken: "r2")
             )
         )
-        await stub.enqueue("GET /issues", .json(401, TestJSON.error("token_expired", "Token expired")))
+
+        await stub.enqueue(
+            "GET /issues",
+            .json(401, TestJSON.error("token_expired", "Token expired"))
+        )
+        await stub.on(
+            "GET /issues",
+            .json(200, TestJSON.list([]))
+        )
+
         let session = try await signIn()
+        try await client.send(Endpoint(method: "GET", path: "issues"))
+
         #expect(session.isSignedIn)
         #expect(tokens.values["accessToken"] == "a2")
+        #expect(tokens.values["refreshToken"] == "r2")
+
+        let calls = await stub.calls
+        #expect(calls.count == 4)
+        #expect(calls.last?.headers["Authorization"] == "Bearer a2")
     }
 
     @Test("Restores the session on launch, and signs out if token refresh also fails")

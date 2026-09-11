@@ -29,6 +29,7 @@ final class SyncingIssueRepository: IssueRepository {
         let saved = try await local.create(issue)
         try engine.enqueue(.create, issue: saved)
         Task { await engine.sync() }
+        
         return saved
     }
 
@@ -36,6 +37,7 @@ final class SyncingIssueRepository: IssueRepository {
         let saved = try local.applyLocalEdit(issue)
         try engine.enqueue(.update, issue: saved)
         Task { await engine.sync() }
+
         return saved
     }
 }
