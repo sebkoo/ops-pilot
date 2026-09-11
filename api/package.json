@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "predev": "docker compose up -d",
+    "predev": "docker compose up -d --wait",
     "dev": "node --watch --env-file=.env --import tsx src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node --env-file=.env dist/src/server.js",
@@ -17,7 +17,7 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "migrate": "node --env-file=.env --import tsx scripts/migrate.ts",
-    "db:up": "docker compose up -d",
+    "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down"
   },
   "dependencies": {
