@@ -27,7 +27,7 @@ export interface TestUser {
 export async function registerUser(
   app: Hono,
   role: 'staff' | 'manager' = 'staff',
-  label = role,
+  label: string = role,
 ): Promise<TestUser> {
   const email = uniqueEmail(label);
   const password = 'password';
