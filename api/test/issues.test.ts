@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
 import { closePool } from '../src/db.js';
+import { jsonHeaders, registerUser } from './support/users.js';
 
 let headers: Record<string, string> = { 'content-type': 'application/json' };
 
@@ -36,7 +37,7 @@ describe('issues API', () => {
     expect(await res.json()).toMatchObject({ ok: true });
   });
 
-  it('creates, reads, updateds, and handles conflicts', async () => {
+  it('creates, reads, updates, and handles conflicts', async () => {
     const created = await app.request(
       '/issues',
       json({
@@ -78,6 +79,68 @@ describe('issues API', () => {
     expect((await read<{ error: { code: string } }>(skip)).error.code).toBe(
       'invalid_transition',
     );
+  });
+
+  it('refuses to move an issue out of a terminal status', async () => {
+    const created = await app.request(
+      '/issues',
+      json({
+        title: 'Terminal status issue',
+        category: 'equipment',
+        priority: 'low',
+        location: 'Test store',
+      }),
+    );
+    const issue = await read<{ id: string }>(created);
+    let version = 1;
+    for (const status of ['assigned', 'in_progress', 'resolved'] as const) {
+      const step = await app.request(
+        `/issues/${issue.id}`,
+        json({ version, status }, 'PATCH'),
+      );
+      expect(step.status).toBe(200);
+      version = (await read<{ version: number }>(step)).version;
+    }
+    const after = await app.request(
+      `/issues/${issue.id}`,
+      json({ version, status: 'assigned' }, 'PATCH'),
+    );
+    expect(after.status).toBe(422);
+    expect((await read<{ error: { code: string } }>(after)).error.code).toBe(
+      'invalid_transition',
+    );
+  });
+
+  it('lets only the creator or a manager edit an issue', async () => {
+    const owner = await registerUser(app, 'staff', 'owner');
+    const intruder = await registerUser(app, 'staff', 'intruder');
+    const boss = await registerUser(app, 'manager', 'boss');
+    const created = await app.request('/issues', {
+      method: 'POST',
+      headers: jsonHeaders(owner.token),
+      body: JSON.stringify({
+        title: 'Issue owned by someone else',
+        category: 'safety',
+        priority: 'medium',
+        location: 'Test store',
+      }),
+    });
+    const issue = await read<{ id: string; version: number }>(created);
+    const stranger = await app.request(`/issues/${issue.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(intruder.token),
+      body: JSON.stringify({ version: issue.version, status: 'assigned' }),
+    });
+    expect(stranger.status).toBe(403);
+    expect((await read<{ error: { code: string } }>(stranger)).error.code).toBe(
+      'not_owner',
+    );
+    const manager = await app.request(`/issues/${issue.id}`, {
+      method: 'PATCH',
+      headers: jsonHeaders(boss.token),
+      body: JSON.stringify({ version: issue.version, status: 'assigned' }),
+    });
+    expect(manager.status).toBe(200);
   });
 
   it('returns 400 for invalid input', async () => {
