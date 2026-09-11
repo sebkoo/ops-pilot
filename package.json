@@ -1,5 +1,10 @@
 {
+  "name": "opspilot",
+  "private": true,
   "devDependencies": {
     "@biomejs/biome": "2.5.12"
+  },
+  "scripts": {
+    "check:docs": "sh scripts/docs-drift.sh"
   }
 }
