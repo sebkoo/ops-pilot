@@ -54,7 +54,7 @@ final class AuthSession {
         self.defaults = defaults
         accessToken = tokens.read("accessToken")
         refreshToken = tokens.read("refreshToken")
-        if let data = UserDefaults.standard.data(forKey: userDefaultsKey) {
+        if let data = defaults.data(forKey: userDefaultsKey) {
             user = try? JSONDecoder().decode(User.self, from: data)
         }
         client.accessTokenProvider = { [weak self] in
@@ -141,7 +141,7 @@ final class AuthSession {
         tokens.save(response.tokens.accessToken, for: "accessToken")
         tokens.save(response.tokens.refreshToken, for: "refreshToken")
         if let data = try? JSONEncoder().encode(response.user) {
-            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+            defaults.set(data, forKey: userDefaultsKey)
         }
         if isDifferentUser { onSignedIn?(response.user.id) }
     }

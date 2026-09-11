@@ -21,6 +21,7 @@ final class SyncEngine {
     private(set) var status: Status = .idle
     private(set) var isOnline = true
     private(set) var pendingCount = 0
+    private(set) var failedCount = 0
     private(set) var lastSyncedAt: Date?
     private(set) var lastConflictCount = 0
 
@@ -30,21 +31,25 @@ final class SyncEngine {
     private let encoder = JSONEncoder.api
     private let decoder = JSONDecoder.api
     private let monitor = NWPathMonitor()
+    private let defaults: UserDefaults
+    private let cursorKey = "sync.cursor"
 
     private var monitorTask: Task<Void, Never>?
     private var isRunning = false
-    private let cursorKey = "sync.cursor"
+    private var needsRerun = false
 
     var isPaused = false
 
     init(
         context: ModelContext,
         local: SwiftDataIssueRepository,
-        client: APIClient
+        client: APIClient,
+        defaults: UserDefaults = .standard
     ) {
         self.context = context
         self.local = local
         self.client = client
+        self.defaults = defaults
         refreshPendingCount()
     }
 
@@ -84,19 +89,29 @@ final class SyncEngine {
     }
 
     func sync() async {
-        guard !isPaused, !isRunning else { return }
+        guard !isPaused else { return }
+        guard !isRunning else {
+            needsRerun = true
+            return
+        }
         isRunning = true
         defer {
             isRunning = false
             refreshPendingCount()
         }
+        repeat {
+            needsRerun = false
+            await runOnce()
+        } while needsRerun
+    }
+
+    private func runOnce() async {
         status = .syncing
         lastConflictCount = 0
         do {
             try await pushPending()
             try await pullChanges()
             lastSyncedAt = Date()
-
             status = .idle
         } catch is URLError {
             status = .offline
@@ -109,29 +124,36 @@ final class SyncEngine {
         try? context.delete(model: PendingOperation.self)
         try? context.delete(model: IssueEntity.self)
         try? context.save()
-        UserDefaults.standard.removeObject(forKey: cursorKey)
+        defaults.removeObject(forKey: cursorKey)
         lastSyncedAt = nil
         lastConflictCount = 0
+        failedCount = 0
         status = .idle
         refreshPendingCount()
     }
 
     private func pushPending() async throws {
         let ops = try context.fetch(
-            FetchDescriptor<PendingOperation>()
-        ).sorted { $0.createdAt < $1.createdAt }
+            FetchDescriptor<PendingOperation>(
+                predicate: #Predicate<PendingOperation>
+                { $0.failedAt == nil },
+                sortBy: [SortDescriptor(\PendingOperation.createdAt)]
+            )
+        )
 
         for op in ops {
             do {
+                let kind = op.kind
                 let snapshot = try decoder.decode(Issue.self, from: op.payload)
                 let serverIssue = try await send(op)
                 try local.upsert(serverIssue)
                 context.delete(op)
                 try context.save()
 
-                if op.kind == .create
-                    && (serverIssue.status != snapshot.status || serverIssue.priority != snapshot.priority
-                        || serverIssue.category != snapshot.category)
+                if kind == .create &&
+                    (serverIssue.status != snapshot.status ||
+                     serverIssue.priority != snapshot.priority ||
+                     serverIssue.category != snapshot.category)
                 {
                     var followUp = snapshot
                     followUp.version = serverIssue.version
@@ -149,10 +171,13 @@ final class SyncEngine {
                 context.delete(op)
                 try context.save()
                 lastConflictCount += 1
-            } catch let APIError.http(status, _, _)
-                where status == 400 || status == 403 || status == 404 || status == 422
-            {
-                context.delete(op)
+            } catch let APIError.http(status, code, message) where
+                        status == 400 ||
+                        status == 403 ||
+                        status == 404 ||
+                        status == 422 {
+                op.failedAt = Date()
+                op.lastError = "\(status) \(code): \(message)"
                 try context.save()
             } catch {
                 op.attempts += 1
@@ -208,7 +233,7 @@ final class SyncEngine {
     }
 
     private func pullChanges() async throws {
-        var cursor = UserDefaults.standard.string(forKey: cursorKey)
+        var cursor = defaults.string(forKey: cursorKey)
         var hasMore = true
         while hasMore {
             var query = [URLQueryItem(name: "limit", value: "200")]
@@ -227,7 +252,7 @@ final class SyncEngine {
             }
             if let next = page.cursor {
                 cursor = next
-                UserDefaults.standard.set(next, forKey: cursorKey)
+                defaults.set(next, forKey: cursorKey)
             }
             hasMore = page.hasMore && !page.items.isEmpty
         }
@@ -243,8 +268,12 @@ final class SyncEngine {
     }
 
     private func refreshPendingCount() {
-        pendingCount =
-            (try? context
-                .fetchCount(FetchDescriptor<PendingOperation>())) ?? 0
+        let ops = (try? context
+            .fetch(FetchDescriptor<PendingOperation>())
+        ) ?? []
+        pendingCount = ops.filter {
+            $0.failedAt == nil
+        }.count
+        failedCount = ops.count - pendingCount
     }
 }

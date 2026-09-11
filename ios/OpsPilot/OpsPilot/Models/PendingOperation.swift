@@ -21,6 +21,7 @@ final class PendingOperation {
     var createdAt: Date
     var attempts: Int
     var lastError: String?
+    var failedAt: Date?
 
     init(
         kind: OperationKind,
@@ -34,6 +35,7 @@ final class PendingOperation {
         createdAt = Date()
         attempts = 0
         lastError = nil
+        failedAt = nil
     }
 
     var kind: OperationKind {
