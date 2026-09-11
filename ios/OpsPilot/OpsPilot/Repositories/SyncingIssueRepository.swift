@@ -29,7 +29,7 @@ final class SyncingIssueRepository: IssueRepository {
         let saved = try await local.create(issue)
         try engine.enqueue(.create, issue: saved)
         Task { await engine.sync() }
-        
+
         return saved
     }
 

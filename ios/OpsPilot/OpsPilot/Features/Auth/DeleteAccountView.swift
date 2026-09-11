@@ -19,8 +19,10 @@ struct DeleteAccountView: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Deleting your account will remove your email address & name, and you will no longer be able to sign in. Reports you submitted will remain as being created by \"Deleted User.\"")
-                        .font(.footnote)
+                    Text(
+                        "Deleting your account will remove your email address & name, and you will no longer be able to sign in. Reports you submitted will remain as being created by \"Deleted User.\""
+                    )
+                    .font(.footnote)
                 }
                 Section("Confirmation") {
                     SecureField("Password", text: $password)
@@ -41,8 +43,7 @@ struct DeleteAccountView: View {
             }
             .navigationTitle("Delete Account")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction)
-                { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
             .overlay { if isWorking { ProgressView() } }
         }
@@ -62,5 +63,5 @@ struct DeleteAccountView: View {
 #Preview {
     DeleteAccountView()
         .environment(PreviewDeps.auth)
-        
+
 }

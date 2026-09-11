@@ -47,7 +47,7 @@ struct IssueListViewModelTests {
             })
         await viewModel.advanceStatus(of: stale)
         await viewModel.advanceStatus(of: stale)
-        
+
         #expect(viewModel.errorMessage?.contains("issue was updated") == true)
     }
 }

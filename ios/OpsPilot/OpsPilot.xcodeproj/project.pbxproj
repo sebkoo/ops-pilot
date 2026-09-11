@@ -29,7 +29,35 @@
 		F1CADD343047EFB5000D2289 /* OpsPilotUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OpsPilotUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F178C452305262220099360C /* Exceptions for "OpsPilotUITests" folder in "OpsPilotTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				IssueFlowUITests.swift,
+				OpsPilotUITestsLaunchTests.swift,
+			);
+			target = F1CADD293047EFB5000D2289 /* OpsPilotTests */;
+		};
+		F178C453305262220099360C /* Exceptions for "OpsPilotUITests" folder in "OpsPilotUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				IssueFlowUITests.swift,
+				OpsPilotUITestsLaunchTests.swift,
+			);
+			target = F1CADD333047EFB5000D2289 /* OpsPilotUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F178C44F305262210099360C /* OpsPilotUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F178C452305262220099360C /* Exceptions for "OpsPilotUITests" folder in "OpsPilotTests" target */,
+				F178C453305262220099360C /* Exceptions for "OpsPilotUITests" folder in "OpsPilotUITests" target */,
+			);
+			path = OpsPilotUITests;
+			sourceTree = "<group>";
+		};
 		F1CADD1F3047EFB3000D2289 /* OpsPilot */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OpsPilot;
@@ -38,11 +66,6 @@
 		F1CADD2D3047EFB5000D2289 /* OpsPilotTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OpsPilotTests;
-			sourceTree = "<group>";
-		};
-		F1CADD373047EFB5000D2289 /* OpsPilotUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = OpsPilotUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -77,7 +100,7 @@
 			children = (
 				F1CADD1F3047EFB3000D2289 /* OpsPilot */,
 				F1CADD2D3047EFB5000D2289 /* OpsPilotTests */,
-				F1CADD373047EFB5000D2289 /* OpsPilotUITests */,
+				F178C44F305262210099360C /* OpsPilotUITests */,
 				F1CADD1E3047EFB3000D2289 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -131,6 +154,7 @@
 				F1CADD2C3047EFB5000D2289 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				F178C44F305262210099360C /* OpsPilotUITests */,
 				F1CADD2D3047EFB5000D2289 /* OpsPilotTests */,
 			);
 			name = OpsPilotTests;
@@ -152,9 +176,6 @@
 			);
 			dependencies = (
 				F1CADD363047EFB5000D2289 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				F1CADD373047EFB5000D2289 /* OpsPilotUITests */,
 			);
 			name = OpsPilotUITests;
 			packageProductDependencies = (
