@@ -5,7 +5,7 @@ let ipCounter = 0;
 
 export const freshIp = () => `203.0.113.${(ipCounter++ % 250) + 1}`;
 export const uniqueEmail = (label: string) =>
-  `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.com}`;
+  `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.com`;
 
 export const jsonHeaders = (
   token?: string,
