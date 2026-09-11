@@ -119,7 +119,7 @@ enum TestJSON {
         hasMore: Bool
     ) -> String {
         let next = cursor.map { "\"\($0)\"" } ?? "null"
-        return "{\"items\":[\(issues.map(issue).joined(separator: "."))],\"cursor\":\(next),\"hasMore\":\(hasMore)}"
+        return "{\"items\":[\(issues.map(issue).joined(separator: ","))],\"cursor\":\(next),\"hasMore\":\(hasMore)}"
     }
 
     static func auth(

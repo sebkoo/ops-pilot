@@ -19,7 +19,7 @@ const readOk = async <T>(res: Response, expected: number): Promise<T> => {
 };
 
 const uniqueEmail = (label: string) =>
-  `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+  `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.com`;
 
 beforeAll(() => {
   initConfig();
@@ -36,8 +36,8 @@ describe('account deletion', () => {
         '/auth/register',
         json({
           email,
-          password: 'correct-horse-battery',
-          displayName: 'deleted tester',
+          password: 'password',
+          displayName: 'Deleted Tester',
         }),
       ),
       201,
@@ -57,12 +57,12 @@ describe('account deletion', () => {
 
   it('blocks login after deletion and allows re-registration with the same email', async () => {
     const email = uniqueEmail('re-register');
-    const password = 'correct-hourse-battery';
+    const password = 'password';
 
     const created = await readOk<{ tokens: { accessToken: string } }>(
       await app.request(
         '/auth/register',
-        json({ email, password, displayName: 'deleted tester' }),
+        json({ email, password, displayName: 'Deleted Tester' }),
       ),
       201,
     );

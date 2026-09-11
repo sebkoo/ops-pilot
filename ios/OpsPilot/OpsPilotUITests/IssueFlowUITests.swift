@@ -34,7 +34,7 @@ final class OpsPilotUITests: XCTestCase {
 
         let locationField = app.textFields["locationField"]
         locationField.tap()
-        locationField.typeText("Store 128 · Freezer")
+        locationField.typeText("Store #128 · Freezer")
         app.buttons["saveButton"].tap()
 
         XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5),

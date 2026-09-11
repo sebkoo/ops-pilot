@@ -32,7 +32,7 @@ final class IssueEntity {
         statusRaw = issue.status.rawValue
         location = issue.location
         assignee = issue.assignee
-        aiSummary = issue.assignee
+        aiSummary = issue.aiSummary
         version = issue.version
         createdAt = issue.createdAt
         updatedAt = issue.updatedAt
@@ -46,7 +46,7 @@ final class IssueEntity {
         statusRaw = issue.status.rawValue
         location = issue.location
         assignee = issue.assignee
-        aiSummary = issue.assignee
+        aiSummary = issue.aiSummary
     }
 
     var asIssue: Issue {
