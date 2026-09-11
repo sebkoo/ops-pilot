@@ -113,9 +113,7 @@ struct IssueListView: View {
             Button("Delete Account", role: .destructive) {
                 isPresentingDeleteAccount = true
             }
-        } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-        }
+        } label: { Image(systemName: "line.3.horizontal.decrease.circle") }
     }
 }
 

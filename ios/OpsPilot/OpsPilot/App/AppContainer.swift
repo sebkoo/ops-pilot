@@ -49,15 +49,18 @@ final class AppContainer {
             baseURL: AppConfig.apiBaseURL,
             transport: LiveTransport()
         )
+        
         let auth = AuthSession(client: client)
+
         let local = SwiftDataIssueRepository(context: container.mainContext)
+
         let engine = SyncEngine(
             context: container.mainContext,
             local: local,
             client: client
         )
-
         engine.start()
+
         auth.onSignedOut = { reason in
             if reason == .user { engine.reset() }
         }

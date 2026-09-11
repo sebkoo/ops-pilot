@@ -21,12 +21,14 @@ enum PreviewDeps {
 
     static var container: AppContainer {
         let local = SwiftDataIssueRepository(context: model.mainContext)
+
         let engine = SyncEngine(
             context: model.mainContext,
             local: local,
             client: client
         )
         engine.isPaused = true
+
         return AppContainer(
             issueRepository: InMemoryIssueRepository(),
             modelContainer: model,
@@ -35,6 +37,7 @@ enum PreviewDeps {
             syncEngine: engine
         )
     }
+
     static var sync: SyncEngine {
         let engine = SyncEngine(
             context: model.mainContext,
