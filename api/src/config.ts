@@ -7,6 +7,13 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8787),
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32),
+  STRIPE_SECRET_KEY: z
+    .string()
+    .regex(/^(sk|rk)_test_/, 'Only Stripe test keys are allowed.'),
+  STRIPE_PUBLISHABLE_KEY: z
+    .string()
+    .regex(/^pk_test_/, 'Only Stripe test keys are allowed.'),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
 });
 
 export type Config = z.infer<typeof EnvSchema>;
@@ -21,6 +28,9 @@ export function initConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .join(', ');
     throw new Error(`Invalid environment variables: ${problems}`);
   }
+
+  for (const key of Object.keys(config))
+    delete (config as Record<string, unknown>)[key];
 
   Object.assign(config, parsed.data);
   return config;
