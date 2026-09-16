@@ -9,10 +9,12 @@ const EnvSchema = z.object({
   JWT_SECRET: z.string().min(32),
   STRIPE_SECRET_KEY: z
     .string()
-    .regex(/^(sk|rk)_test_/, 'Only Stripe test keys are allowed.'),
+    .regex(/^(sk|rk)_test_/, 'Only Stripe test keys are allowed.')
+    .optional(),
   STRIPE_PUBLISHABLE_KEY: z
     .string()
-    .regex(/^pk_test_/, 'Only Stripe test keys are allowed.'),
+    .regex(/^pk_test_/, 'Only Stripe test keys are allowed.')
+    .optional(),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
 });
 

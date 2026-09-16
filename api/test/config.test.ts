@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { initConfig } from '../src/config.js';
 
-const base = { DATEBASE_URL: 'postgres://x', JWT_SECRET: 'a'.repeat(32) };
+const base = { DATABASE_URL: 'postgres://x', JWT_SECRET: 'a'.repeat(32) };
 
 describe('config - production keys are rejected by the code (P.2)', () => {
   it('allows only test keys, refuses to start with a live key, and starts', () => {
