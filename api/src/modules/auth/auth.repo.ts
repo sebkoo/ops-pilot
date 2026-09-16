@@ -1,15 +1,17 @@
-import { query } from '../../db.js';
+import { z } from 'zod';
+import { one, query } from '../../db.js';
 import type { Role } from './tokens.js';
 
-export interface UserRow {
-  id: string;
-  email: string;
-  password_hash: string;
-  display_name: string;
-  role: Role;
-  created_at: Date;
-  deleted_at: Date | null;
-}
+export const UserRow = z.object({
+  id: z.string(),
+  email: z.string(),
+  password_hash: z.string(),
+  display_name: z.string(),
+  role: z.enum(['staff', 'manager']),
+  created_at: z.date(),
+  deleted_at: z.date().nullable(),
+});
+export type UserRow = z.infer<typeof UserRow>;
 
 export interface PublicUser {
   id: string;
@@ -25,23 +27,19 @@ export const toPublicUser = (row: UserRow): PublicUser => ({
   role: row.role,
 });
 
-export async function findUserByEmail(email: string): Promise<UserRow | null> {
-  const rows = await query<UserRow>(
+export const findUserByEmail = (email: string) =>
+  one<UserRow>(
     `SELECT * FROM users 
      WHERE email = $1 AND deleted_at is NULL`,
     [email],
   );
-  return rows[0] ?? null;
-}
 
-export async function findUserById(id: string): Promise<UserRow | null> {
-  const rows = await query<UserRow>(
+export const findUserById = (id: string) =>
+  one<UserRow>(
     `SELECT * FROM users 
      WHERE id = $1 AND deleted_at IS NULL`,
     [id],
   );
-  return rows[0] ?? null;
-}
 
 export async function countUsers(): Promise<number> {
   const rows = await query<{ count: string }>(
@@ -58,21 +56,22 @@ export async function createUser(input: {
   displayName: string;
   role: Role;
 }): Promise<UserRow> {
-  const rows = await query<UserRow>(
+  const row = await one<UserRow>(
     `INSERT INTO users (email, password_hash, display_name, role) 
      VALUES ($1, $2, $3, $4) RETURNING *`,
     [input.email, input.passwordHash, input.displayName, input.role],
   );
-  const row = rows[0];
   if (!row) throw new Error('INSERT user did not return a row.');
   return row;
 }
 
 export async function countManagers(): Promise<number> {
-  const rows = await query<{ count: string }>(
-    "SELECT count(*)::text AS count FROM users WHERE role = 'manager' AND deleted_at IS NULL",
+  const row = await one<{ count: string }>(
+    `SELECT count(*)::text AS count 
+     FROM users 
+     WHERE role = 'manager' AND deleted_at IS NULL`,
   );
-  return Number(rows[0]?.count ?? '0');
+  return Number(row?.count ?? '0');
 }
 
 export async function softDeleteUser(id: string): Promise<void> {

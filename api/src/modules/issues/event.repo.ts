@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { query } from '../../db.js';
 
 export type EventKind =
@@ -6,6 +7,16 @@ export type EventKind =
   | 'status_changed'
   | 'ai_suggestion_created'
   | 'ai_suggestion_applied';
+
+export const IssueEventRow = z.object({
+  id: z.string(),
+  issue_id: z.string(),
+  actor_id: z.string().nullable(),
+  kind: z.string(),
+  payload: z.record(z.string(), z.unknown()).nullable(),
+  created_at: z.date(),
+});
+export type IssueEventRow = z.infer<typeof IssueEventRow>;
 
 export async function recordEvent(
   issueId: string,
@@ -20,18 +31,11 @@ export async function recordEvent(
   );
 }
 
-export async function listEvents(issueId: string) {
-  return query<{
-    id: string;
-    kind: EventKind;
-    actor_id: string | null;
-    paylod: Record<string, unknown>;
-    created_at: Date;
-  }>(
+export const listEvents = (issueId: string) =>
+  query<IssueEventRow>(
     `SELECT id, kind, actor_id, payload, created_at 
      FROM issue_events 
      WHERE issue_id = $1
      ORDER BY id`,
     [issueId],
   );
-}

@@ -21,6 +21,14 @@ export async function query<Row extends pg.QueryResultRow>(
   return result.rows;
 }
 
+export async function one<Row extends pg.QueryResultRow>(
+  text: string,
+  params: unknown[] = [],
+): Promise<Row | null> {
+  const rows = await query<Row>(text, params);
+  return rows[0] ?? null;
+}
+
 export async function closePool(): Promise<void> {
   await pool?.end();
   pool = undefined;

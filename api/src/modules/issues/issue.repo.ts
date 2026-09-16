@@ -1,39 +1,32 @@
-import { query } from '../../db.js';
-import type {
-  CreateIssueInput,
-  Issue,
-  UpdateIssueInput,
+import { z } from 'zod';
+import { one, query } from '../../db.js';
+import {
+  type CreateIssueInput,
+  type Issue,
+  IssueCategory,
+  IssuePriority,
+  IssueStatus,
+  type UpdateIssueInput,
 } from './issue.schema.js';
 
-interface IssueRow {
-  id: string;
-  title: string;
-  details: string;
-  category: Issue['category'];
-  priority: Issue['priority'];
-  status: Issue['status'];
-  location: string;
-  assignee: string | null;
-  ai_summary: string | null;
-  created_by: string | null;
-  version: number;
-  created_at: string;
-  updated_at: string;
-}
+export const IssueRow = z.object({
+  id: z.string(),
+  title: z.string(),
+  details: z.string(),
+  category: IssueCategory,
+  priority: IssuePriority,
+  status: IssueStatus,
+  location: z.string(),
+  assignee: z.string().nullable(),
+  ai_summary: z.string().nullable(),
+  created_by: z.string().nullable(),
+  version: z.number(),
+  created_at: z.date(),
+  updated_at: z.date(),
+});
+export type IssueRow = z.infer<typeof IssueRow>;
 
-const COLUMNS = `id, 
-                 title, 
-                 details, 
-                 category, 
-                 priority, 
-                 status, 
-                 location, 
-                 assignee, 
-                 ai_summary, 
-                 version, 
-                 created_by, 
-                 created_at, 
-                 updated_at`;
+const COLUMNS = Object.keys(IssueRow.shape).join(', ');
 
 function toIssue(row: IssueRow): Issue {
   return {
@@ -48,8 +41,8 @@ function toIssue(row: IssueRow): Issue {
     aiSummary: row.ai_summary,
     createdBy: row.created_by,
     version: row.version,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
   };
 }
 
