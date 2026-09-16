@@ -5,6 +5,7 @@
     "@biomejs/biome": "2.5.12"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "check:docs": "sh scripts/docs-drift.sh"
   }
 }

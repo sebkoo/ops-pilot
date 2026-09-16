@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# Formats and lints staged files only.
+# Enabled per clone by `npm install` at the root ("prepare").
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+ts=$(printf '%s\n' "$staged" | grep -E '^api/.*\.(ts|json)$' || true)
+if [ -n "$ts" ]; then
+  npm --prefix api run -s lint:fix -- --staged --no-errors-on-unmatched --error-on-warnings
+  printf '%s\n' "$ts" | tr '\n' '\0' | xargs -0 git add -- 
+fi
+
+swift=$(printf '%s\n' "$staged" | grep -E '^ios/OpsPilot/.*\.swift$' | sed 's#^ios/OpsPilot/##' || true)
+if [ -n "$swift" ]; then
+  cd ios/OpsPilot
+  if swift format --version >/dev/null 2>&1; then
+    printf '%s\n' "$swift" | tr '\n' '\0' | xargs -0 swift format format -i
+    printf '%s\n' "$swift" | tr '\n' '\0' | xargs -0 git add --
+  else
+    echo "pre-commit: swift format not found (Xcode 16 toolchain) - skipped"
+  fi 
+  if command -v swiftlint >/dev/null 2>&1; then
+    printf '%s\n' "$swift" | tr '\n' '\0\' | xargs -0 swiftlint lint --strict --quiet
+  else
+    echo "pre-commit: swiftlint not found - skipped, CI runs it"
+  fi  
+fi 
