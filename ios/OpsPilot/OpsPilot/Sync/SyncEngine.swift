@@ -135,8 +135,7 @@ final class SyncEngine {
     private func pushPending() async throws {
         let ops = try context.fetch(
             FetchDescriptor<PendingOperation>(
-                predicate: #Predicate<PendingOperation>
-                { $0.failedAt == nil },
+                predicate: #Predicate<PendingOperation> { $0.failedAt == nil },
                 sortBy: [SortDescriptor(\PendingOperation.createdAt)]
             )
         )
@@ -150,10 +149,9 @@ final class SyncEngine {
                 context.delete(op)
                 try context.save()
 
-                if kind == .create &&
-                    (serverIssue.status != snapshot.status ||
-                     serverIssue.priority != snapshot.priority ||
-                     serverIssue.category != snapshot.category)
+                if kind == .create
+                    && (serverIssue.status != snapshot.status || serverIssue.priority != snapshot.priority
+                        || serverIssue.category != snapshot.category)
                 {
                     var followUp = snapshot
                     followUp.version = serverIssue.version
@@ -171,11 +169,10 @@ final class SyncEngine {
                 context.delete(op)
                 try context.save()
                 lastConflictCount += 1
-            } catch let APIError.http(status, code, message) where
-                        status == 400 ||
-                        status == 403 ||
-                        status == 404 ||
-                        status == 422 {
+            } catch let APIError.http(status, code, message)
+                where
+                status == 400 || status == 403 || status == 404 || status == 422
+            {
                 op.failedAt = Date()
                 op.lastError = "\(status) \(code): \(message)"
                 try context.save()
@@ -260,32 +257,31 @@ final class SyncEngine {
 
     private func pendingOperation(for issueID: UUID) throws -> PendingOperation? {
         var descriptor = FetchDescriptor<PendingOperation>(
-            predicate: #Predicate<PendingOperation>
-            { $0.issueID == issueID }
+            predicate: #Predicate<PendingOperation> { $0.issueID == issueID }
         )
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
     }
 
     private func refreshPendingCount() {
-        let ops = (try? context
-            .fetch(FetchDescriptor<PendingOperation>())
-        ) ?? []
-        pendingCount = ops.filter {
-            $0.failedAt == nil
-        }.count
+        let ops =
+            (try? context
+                .fetch(FetchDescriptor<PendingOperation>())) ?? []
+        pendingCount =
+            ops.filter {
+                $0.failedAt == nil
+            }.count
         failedCount = ops.count - pendingCount
     }
 
     func discardFailed() {
-        let dead = (try? context
-            .fetch(
-                FetchDescriptor<PendingOperation>(
-                    predicate: #Predicate<PendingOperation>
-                    { $0.failedAt != nil }
-                )
-            )
-        ) ?? []
+        let dead =
+            (try? context
+                .fetch(
+                    FetchDescriptor<PendingOperation>(
+                        predicate: #Predicate<PendingOperation> { $0.failedAt != nil }
+                    )
+                )) ?? []
         for op in dead {
             context.delete(op)
         }

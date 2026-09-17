@@ -183,9 +183,13 @@ struct SyncEngineTests {
     @Test("Moves permanent failures to the dead-letter queue instead of discarding them")
     func permanentFailureGoesToDLQ() async throws {
         try engine.enqueue(.create, issue: sample("Invalid Request"))
-        await stub.on("POST /issues",
-            .json(422, TestJSON.error("invalid_transition",
-                                      "This state transition is not allowed.")
+        await stub.on(
+            "POST /issues",
+            .json(
+                422,
+                TestJSON.error(
+                    "invalid_transition",
+                    "This state transition is not allowed.")
             )
         )
         await engine.sync()

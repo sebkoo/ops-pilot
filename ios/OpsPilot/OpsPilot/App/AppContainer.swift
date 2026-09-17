@@ -49,7 +49,7 @@ final class AppContainer {
             baseURL: AppConfig.apiBaseURL,
             transport: LiveTransport()
         )
-        
+
         let auth = AuthSession(client: client)
 
         let local = SwiftDataIssueRepository(context: container.mainContext)
