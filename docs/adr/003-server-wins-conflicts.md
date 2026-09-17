@@ -1,7 +1,7 @@
 # ADR-003: Offline sync resolves conflicts server-wins
 Date: 2026-09-03
 ## Status
-Accepted in Phase 5
+Accepted
 ## Context
 Two phones can edit the same issue while offline; a status transition is the latest physical truth on the floor.
 ## Decision

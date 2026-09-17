@@ -1,7 +1,7 @@
 # ADR-004: Keyset pagination and composite (updated_at, id) sync cursors
 Date: 2026-09-03
 ## Status
-Accepted in Phase 5
+Accepted
 ## Context
 OFFSET pagination skips or repeats rows while rows are inserted; a plain timestamp cursor drops or repeats rows that share a millisecond.
 ## Decision

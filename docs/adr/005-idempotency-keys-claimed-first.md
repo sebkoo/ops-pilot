@@ -1,7 +1,7 @@
 # ADR-005: Idempotency keys are claimed with a unique constraint before the handler runs
 Date: 2026-09-03
 ## Status
-Accepted in Phase 5
+Accepted
 ## Context
 Retries after a timeout must return the first result instead of creating a duplicate, even when two retries arrive at the same moment.
 ## Decision
