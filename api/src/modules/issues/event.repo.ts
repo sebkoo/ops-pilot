@@ -33,7 +33,11 @@ export async function recordEvent(
 
 export const listEvents = (issueId: string) =>
   query<IssueEventRow>(
-    `SELECT id, kind, actor_id, payload, created_at 
+    `SELECT id, 
+      kind, 
+      actor_id, 
+      payload, 
+      created_at 
      FROM issue_events 
      WHERE issue_id = $1
      ORDER BY id`,

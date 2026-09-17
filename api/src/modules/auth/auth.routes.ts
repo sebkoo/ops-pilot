@@ -41,10 +41,7 @@ authRoutes.post('/register', validate('json', RegisterSchema), async (c) => {
     displayName,
     role,
   });
-  return c.json(
-    { user: toPublicUser(user), tokens: await issueTokens(user) },
-    201,
-  );
+  return c.json({ user: toPublicUser(user), tokens: await issueTokens(user) }, 201);
 });
 
 authRoutes.post('/login', validate('json', CredentialsSchema), async (c) => {
@@ -52,11 +49,7 @@ authRoutes.post('/login', validate('json', CredentialsSchema), async (c) => {
   const user = await findUserByEmail(email);
   const ok = await verifyPassword(password, user?.password_hash ?? null);
   if (!user || !ok)
-    throw new AppError(
-      401,
-      'invalid_credentials',
-      'The email or password is incorrect.',
-    );
+    throw new AppError(401, 'invalid_credentials', 'The email or password is incorrect.');
   return c.json({ user: toPublicUser(user), tokens: await issueTokens(user) });
 });
 
@@ -73,33 +66,19 @@ authRoutes.get('/me', requireAuth, async (c) => {
   return c.json(toPublicUser(user));
 });
 
-authRoutes.delete(
-  '/me',
-  requireAuth,
-  validate('json', DeleteAccountSchema),
-  async (c) => {
-    const { password } = c.req.valid('json');
-    const user = await findUserById(c.get('user').id);
-    if (!user)
-      throw new AppError(404, 'not_found', 'Account could not be found.');
-    if (!(await verifyPassword(password, user.password_hash)))
-      throw new AppError(
-        401,
-        'invalid_credentials',
-        'The password is incorrect.',
-      );
-    if (
-      user.role === 'manager' &&
-      (await countUsers()) > 1 &&
-      (await countManagers()) <= 1
-    ) {
-      throw new AppError(
-        409,
-        'last_manager',
-        'The last manager cannot delete their account. Please create another.',
-      );
-    }
-    await softDeleteUser(user.id);
-    return c.body(null, 204);
-  },
-);
+authRoutes.delete('/me', requireAuth, validate('json', DeleteAccountSchema), async (c) => {
+  const { password } = c.req.valid('json');
+  const user = await findUserById(c.get('user').id);
+  if (!user) throw new AppError(404, 'not_found', 'Account could not be found.');
+  if (!(await verifyPassword(password, user.password_hash)))
+    throw new AppError(401, 'invalid_credentials', 'The password is incorrect.');
+  if (user.role === 'manager' && (await countUsers()) > 1 && (await countManagers()) <= 1) {
+    throw new AppError(
+      409,
+      'last_manager',
+      'The last manager cannot delete their account. Please create another.',
+    );
+  }
+  await softDeleteUser(user.id);
+  return c.body(null, 204);
+});

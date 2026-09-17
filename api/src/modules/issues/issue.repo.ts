@@ -98,7 +98,15 @@ export async function insertIssue(
   input: CreateIssueInput & { id: string; createdBy: string },
 ): Promise<{ issue: Issue; created: boolean }> {
   const rows = await query<IssueRow>(
-    `INSERT INTO issues (id, title, details, category, priority, status, location, created_by)
+    `INSERT INTO issues (
+      id, 
+      title, 
+      details, 
+      category, 
+      priority, 
+      status, 
+      location, 
+      created_by)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT (id) DO NOTHING
      RETURNING ${COLUMNS}`,
@@ -116,8 +124,7 @@ export async function insertIssue(
   const row = rows[0];
   if (row) return { issue: toIssue(row), created: true };
   const existing = await getIssue(input.id);
-  if (!existing)
-    throw new Error('The INSERT conflicted, but no existing row was found.');
+  if (!existing) throw new Error('The INSERT conflicted, but no existing row was found.');
   return { issue: existing, created: false };
 }
 
@@ -126,10 +133,7 @@ export type UpdateResult =
   | { kind: 'not_found' }
   | { kind: 'conflict'; current: Issue };
 
-export async function updateIssue(
-  id: string,
-  patch: UpdateIssueInput,
-): Promise<UpdateResult> {
+export async function updateIssue(id: string, patch: UpdateIssueInput): Promise<UpdateResult> {
   const rows = await query<IssueRow>(
     `UPDATE issues SET 
       title = COALESCE($3, title),
@@ -141,7 +145,8 @@ export async function updateIssue(
       assignee = CASE WHEN $9::boolean THEN $10 ELSE assignee END,
       version = version + 1,
       updated_at = now()
-     WHERE id = $1 AND version = $2
+     WHERE id = $1 AND 
+      version = $2
      RETURNING ${COLUMNS}`,
     [
       id,
@@ -177,8 +182,8 @@ export async function listChangedSince(
   limit: number,
 ): Promise<{ items: Issue[]; last: SyncCursor | null }> {
   const rows = await query<IssueRow & { updated_at_exact: string }>(
-    `SELECT ${COLUMNS}, updated_at::text 
-     AS updated_at_exact 
+    `SELECT ${COLUMNS}, 
+      updated_at::text AS updated_at_exact 
      FROM issues
      WHERE ($1::timestamptz IS NULL 
       OR (updated_at, id) > ($1::timestamptz, $2::uuid))

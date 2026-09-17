@@ -4,11 +4,7 @@ import { initConfig } from '../src/config.js';
 import { closePool } from '../src/db.js';
 
 let headers: Record<string, string> = { 'content-type': 'application/json' };
-const json = (
-  body: unknown,
-  method = 'POST',
-  extra: Record<string, string> = {},
-): RequestInit => ({
+const json = (body: unknown, method = 'POST', extra: Record<string, string> = {}): RequestInit => ({
   method,
   headers: { ...headers, ...extra },
   body: JSON.stringify(body),
@@ -30,8 +26,7 @@ beforeAll(async () => {
       displayName: 'Sync Tester',
     }),
   );
-  if (res.status !== 201)
-    throw new Error(`register failed: ${res.status} ${await res.text()}`);
+  if (res.status !== 201) throw new Error(`register failed: ${res.status} ${await res.text()}`);
   const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
   headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
 });
@@ -48,19 +43,11 @@ describe('sync', () => {
       priority: 'low',
       location: 'test',
     };
-    const first = await app.request(
-      '/issues',
-      json(body, 'POST', { 'idempotency-key': key }),
-    );
-    const second = await app.request(
-      '/issues',
-      json(body, 'POST', { 'idempotency-key': key }),
-    );
+    const first = await app.request('/issues', json(body, 'POST', { 'idempotency-key': key }));
+    const second = await app.request('/issues', json(body, 'POST', { 'idempotency-key': key }));
     expect(first.status).toBe(201);
     expect(second.headers.get('idempotent-replayed')).toBe('true');
-    expect((await read<{ id: string }>(second)).id).toBe(
-      (await read<{ id: string }>(first)).id,
-    );
+    expect((await read<{ id: string }>(second)).id).toBe((await read<{ id: string }>(first)).id);
   });
 
   it('returns 200 on a second reqeust with the same ID and creates only one issue', async () => {
@@ -110,10 +97,9 @@ describe('sync', () => {
     const seen = new Set<string>(page1.items.map((i) => i.id));
     let cursor = page1.cursor;
     for (let i = 0; i < 500 && cursor; i++) {
-      const res = await app.request(
-        `/sync/changes?limit=1&cursor=${encodeURIComponent(cursor)}`,
-        { headers },
-      );
+      const res = await app.request(`/sync/changes?limit=1&cursor=${encodeURIComponent(cursor)}`, {
+        headers,
+      });
       const page = await read<Page>(res);
       if (page.items.length === 0) break;
       for (const item of page.items) {
@@ -122,9 +108,7 @@ describe('sync', () => {
       }
       cursor = page.cursor;
     }
-    const all = await read<Page>(
-      await app.request('/sync/changes?limit=500', { headers }),
-    );
+    const all = await read<Page>(await app.request('/sync/changes?limit=500', { headers }));
     expect(all.hasMore).toBe(false);
     expect(seen.size).toBe(all.items.length);
   });

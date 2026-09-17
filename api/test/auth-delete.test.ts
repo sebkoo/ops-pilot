@@ -13,8 +13,7 @@ const json = (body: unknown, method = 'POST', token?: string): RequestInit => ({
 });
 const readOk = async <T>(res: Response, expected: number): Promise<T> => {
   const text = await res.text();
-  if (res.status !== expected)
-    throw new Error(`expected ${expected}, got ${res.status}: ${text}`);
+  if (res.status !== expected) throw new Error(`expected ${expected}, got ${res.status}: ${text}`);
   return JSON.parse(text) as T;
 };
 
@@ -60,10 +59,7 @@ describe('account deletion', () => {
     const password = 'password';
 
     const created = await readOk<{ tokens: { accessToken: string } }>(
-      await app.request(
-        '/auth/register',
-        json({ email, password, displayName: 'Deleted Tester' }),
-      ),
+      await app.request('/auth/register', json({ email, password, displayName: 'Deleted Tester' })),
       201,
     );
     const deleted = await app.request(

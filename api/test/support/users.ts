@@ -7,10 +7,7 @@ export const freshIp = () => `203.0.113.${(ipCounter++ % 250) + 1}`;
 export const uniqueEmail = (label: string) =>
   `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.com`;
 
-export const jsonHeaders = (
-  token?: string,
-  extra: Record<string, string> = {},
-) => ({
+export const jsonHeaders = (token?: string, extra: Record<string, string> = {}) => ({
   'content-type': 'application/json',
   'x-forwarded-for': freshIp(),
   ...(token ? { authorization: `Bearer ${token}` } : {}),
@@ -37,8 +34,7 @@ export async function registerUser(
     body: JSON.stringify({ email, password, displayName: `test ${label}` }),
   });
 
-  if (res.status !== 201)
-    throw new Error(`register failed: ${res.status} ${await res.text()}`);
+  if (res.status !== 201) throw new Error(`register failed: ${res.status} ${await res.text()}`);
   let body = (await res.json()) as {
     user: { id: string; role: string };
     tokens: { accessToken: string; refreshToken: string };

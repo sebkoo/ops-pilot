@@ -20,8 +20,7 @@ beforeAll(async () => {
     '/auth/register',
     json({ email, password: 'password', displayName: 'Tester' }),
   );
-  if (res.status !== 201)
-    throw new Error(`register failed: ${res.status} ${await res.text()}`);
+  if (res.status !== 201) throw new Error(`register failed: ${res.status} ${await res.text()}`);
   const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
   headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
 });
@@ -67,18 +66,14 @@ describe('issues API', () => {
       json({ version: 1, status: 'in_progress' }, 'PATCH'),
     );
     expect(stale.status).toBe(409);
-    expect((await read<{ error: { code: string } }>(stale)).error.code).toBe(
-      'version_conflict',
-    );
+    expect((await read<{ error: { code: string } }>(stale)).error.code).toBe('version_conflict');
 
     const skip = await app.request(
       `/issues/${issue.id}`,
       json({ version: 2, status: 'resolved' }, 'PATCH'),
     );
     expect(skip.status).toBe(422);
-    expect((await read<{ error: { code: string } }>(skip)).error.code).toBe(
-      'invalid_transition',
-    );
+    expect((await read<{ error: { code: string } }>(skip)).error.code).toBe('invalid_transition');
   });
 
   it('refuses to move an issue out of a terminal status', async () => {
@@ -94,10 +89,7 @@ describe('issues API', () => {
     const issue = await read<{ id: string }>(created);
     let version = 1;
     for (const status of ['assigned', 'in_progress', 'resolved'] as const) {
-      const step = await app.request(
-        `/issues/${issue.id}`,
-        json({ version, status }, 'PATCH'),
-      );
+      const step = await app.request(`/issues/${issue.id}`, json({ version, status }, 'PATCH'));
       expect(step.status).toBe(200);
       version = (await read<{ version: number }>(step)).version;
     }
@@ -106,9 +98,7 @@ describe('issues API', () => {
       json({ version, status: 'assigned' }, 'PATCH'),
     );
     expect(after.status).toBe(422);
-    expect((await read<{ error: { code: string } }>(after)).error.code).toBe(
-      'invalid_transition',
-    );
+    expect((await read<{ error: { code: string } }>(after)).error.code).toBe('invalid_transition');
   });
 
   it('lets only the creator or a manager edit an issue', async () => {
@@ -132,9 +122,7 @@ describe('issues API', () => {
       body: JSON.stringify({ version: issue.version, status: 'assigned' }),
     });
     expect(stranger.status).toBe(403);
-    expect((await read<{ error: { code: string } }>(stranger)).error.code).toBe(
-      'not_owner',
-    );
+    expect((await read<{ error: { code: string } }>(stranger)).error.code).toBe('not_owner');
     const manager = await app.request(`/issues/${issue.id}`, {
       method: 'PATCH',
       headers: jsonHeaders(boss.token),
@@ -144,15 +132,10 @@ describe('issues API', () => {
   });
 
   it('returns 400 for invalid input', async () => {
-    const res = await app.request(
-      '/issues',
-      json({ title: '', category: 'nope' }),
-    );
+    const res = await app.request('/issues', json({ title: '', category: 'nope' }));
     expect(res.status).toBe(400);
 
-    const body = await read<{ error: { code: string; details: unknown[] } }>(
-      res,
-    );
+    const body = await read<{ error: { code: string; details: unknown[] } }>(res);
     expect(body.error.code).toBe('validation_error');
     expect(body.error.details.length).toBeGreaterThan(0);
   });

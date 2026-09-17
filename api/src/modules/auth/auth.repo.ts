@@ -30,14 +30,16 @@ export const toPublicUser = (row: UserRow): PublicUser => ({
 export const findUserByEmail = (email: string) =>
   one<UserRow>(
     `SELECT * FROM users 
-     WHERE email = $1 AND deleted_at is NULL`,
+     WHERE email = $1 AND 
+      deleted_at is NULL`,
     [email],
   );
 
 export const findUserById = (id: string) =>
   one<UserRow>(
     `SELECT * FROM users 
-     WHERE id = $1 AND deleted_at IS NULL`,
+     WHERE id = $1 AND 
+      deleted_at IS NULL`,
     [id],
   );
 
@@ -57,7 +59,11 @@ export async function createUser(input: {
   role: Role;
 }): Promise<UserRow> {
   const row = await one<UserRow>(
-    `INSERT INTO users (email, password_hash, display_name, role) 
+    `INSERT INTO users (
+      email, 
+      password_hash, 
+      display_name, 
+      role) 
      VALUES ($1, $2, $3, $4) RETURNING *`,
     [input.email, input.passwordHash, input.displayName, input.role],
   );
@@ -69,7 +75,8 @@ export async function countManagers(): Promise<number> {
   const row = await one<{ count: string }>(
     `SELECT count(*)::text AS count 
      FROM users 
-     WHERE role = 'manager' AND deleted_at IS NULL`,
+     WHERE role = 'manager' AND 
+      deleted_at IS NULL`,
   );
   return Number(row?.count ?? '0');
 }
@@ -78,10 +85,13 @@ export async function softDeleteUser(id: string): Promise<void> {
   await query(
     `UPDATE users 
      SET deleted_at = now(),
-        email = 'deleted+' || id::text || '@invalid',
+        email = 'deleted+' 
+          || id::text 
+          || '@invalid',
         display_name = 'Deleted User',
         password_hash = ''
-     WHERE id = $1 AND deleted_at IS NULL`,
+     WHERE id = $1 AND 
+      deleted_at IS NULL`,
     [id],
   );
 }

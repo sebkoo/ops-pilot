@@ -26,9 +26,7 @@ describe('row types match the live schema', () => {
          WHERE table_schema = 'public' AND table_name = $1`,
         [table],
       );
-      expect(Object.keys(row.shape).sort()).toEqual(
-        columns.map((c) => c.column_name).sort(),
-      );
+      expect(Object.keys(row.shape).sort()).toEqual(columns.map((c) => c.column_name).sort());
     });
   }
 });

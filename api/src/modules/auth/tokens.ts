@@ -53,7 +53,5 @@ async function verifyType<T extends { type: string }>(
   }
 }
 
-export const verifyAccess = (token: string) =>
-  verifyType<AccessClaims>(token, 'access');
-export const verifyRefresh = (token: string) =>
-  verifyType<RefreshClaims>(token, 'refresh');
+export const verifyAccess = (token: string) => verifyType<AccessClaims>(token, 'access');
+export const verifyRefresh = (token: string) => verifyType<RefreshClaims>(token, 'refresh');

@@ -58,10 +58,7 @@ describe('auth (4.4)', () => {
     expect(body.tokens.expiresIn).toBe(900);
     expect(body.tokens.accessToken.split('.')).toHaveLength(3);
     expect(body.tokens.refreshToken).not.toBe(body.tokens.accessToken);
-    expect(
-      (await post('/auth/login', { email: email.toLowerCase(), password }))
-        .status,
-    ).toBe(200);
+    expect((await post('/auth/login', { email: email.toLowerCase(), password })).status).toBe(200);
 
     const again = await post('/auth/register', {
       email,
@@ -122,9 +119,7 @@ describe('auth (4.4)', () => {
     });
     expect(wrongType.status).toBe(401);
     expect(await codeOf(wrongType)).toBe('refresh_invalid');
-    expect(
-      (await post('/auth/refresh', { refreshToken: 'not.a.jwt' })).status,
-    ).toBe(401);
+    expect((await post('/auth/refresh', { refreshToken: 'not.a.jwt' })).status).toBe(401);
 
     const me = await app.request('/auth/me', {
       headers: jsonHeaders(reg.tokens.accessToken),
@@ -138,8 +133,6 @@ describe('auth (4.4)', () => {
         })
       ).status,
     ).toBe(401);
-    expect(
-      (await app.request('/auth/me', { headers: jsonHeaders() })).status,
-    ).toBe(401);
+    expect((await app.request('/auth/me', { headers: jsonHeaders() })).status).toBe(401);
   });
 });

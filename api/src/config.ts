@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
 const EnvSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(8787),
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32),
@@ -31,8 +29,7 @@ export function initConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid environment variables: ${problems}`);
   }
 
-  for (const key of Object.keys(config))
-    delete (config as Record<string, unknown>)[key];
+  for (const key of Object.keys(config)) delete (config as Record<string, unknown>)[key];
 
   Object.assign(config, parsed.data);
   return config;

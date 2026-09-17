@@ -6,12 +6,7 @@ import { idempotency } from '../../middleware/idempotency.js';
 import { validate } from '../../validate.js';
 import { recordEvent } from './event.repo.js';
 import type { Cursor } from './issue.repo.js';
-import {
-  getIssue,
-  insertIssue,
-  listIssues,
-  updateIssue,
-} from './issue.repo.js';
+import { getIssue, insertIssue, listIssues, updateIssue } from './issue.repo.js';
 import {
   ALLOWED_TRANSITIONS,
   CreateIssueSchema,
@@ -23,8 +18,7 @@ export const issueRoutes = new Hono<AuthEnv>();
 issueRoutes.use('*', requireAuth);
 issueRoutes.use('*', idempotency);
 
-const TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/;
+const TIMESTAMP = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/;
 
 const CursorSchema = z.object({
   createdAt: z.string().regex(TIMESTAMP),
@@ -51,8 +45,7 @@ issueRoutes.get('/', validate('query', ListIssuesQuerySchema), async (c) => {
     limit: q.limit,
     after: q.cursor ? decodeCursor(q.cursor) : undefined,
   });
-  const nextCursor =
-    issues.length === q.limit && lastCursor ? encodeCursor(lastCursor) : null;
+  const nextCursor = issues.length === q.limit && lastCursor ? encodeCursor(lastCursor) : null;
   return c.json({ issues, nextCursor });
 });
 
@@ -87,11 +80,7 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
   if (patch.assignee !== undefined && user.role !== 'manager')
     throw new AppError(403, 'forbidden', 'Only managers can assign issues.');
   if (user.role !== 'manager' && current?.createdBy !== user.id)
-    throw new AppError(
-      403,
-      'not_owner',
-      'You can only modify issues you created.',
-    );
+    throw new AppError(403, 'not_owner', 'You can only modify issues you created.');
   if (!current) throw new AppError(404, 'not_found', `Issue not found`);
   if (
     patch.status &&
@@ -106,24 +95,16 @@ issueRoutes.patch('/:id', validate('json', UpdateIssueSchema), async (c) => {
   }
 
   const result = await updateIssue(current.id, patch);
-  if (result.kind === 'not_found')
-    throw new AppError(404, 'not_found', `Issue not found`);
+  if (result.kind === 'not_found') throw new AppError(404, 'not_found', `Issue not found`);
   if (result.kind === 'conflict')
-    throw new AppError(
-      409,
-      'version_conflict',
-      `Someone else updated this issue first.`,
-      {
-        current: result.current,
-      },
-    );
+    throw new AppError(409, 'version_conflict', `Someone else updated this issue first.`, {
+      current: result.current,
+    });
 
   await recordEvent(
     current.id,
     user.id,
-    patch.status && patch.status !== current.status
-      ? 'status_changed'
-      : 'issue_updated',
+    patch.status && patch.status !== current.status ? 'status_changed' : 'issue_updated',
     { from: current.status, patch },
   );
 

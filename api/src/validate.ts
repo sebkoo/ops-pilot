@@ -2,10 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import type { ValidationTargets } from 'hono';
 import type { ZodType } from 'zod';
 
-export const validate = <
-  Schema extends ZodType,
-  Target extends keyof ValidationTargets,
->(
+export const validate = <Schema extends ZodType, Target extends keyof ValidationTargets>(
   target: Target,
   schema: Schema,
 ) =>

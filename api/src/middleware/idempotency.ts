@@ -40,11 +40,7 @@ export const idempotency = createMiddleware<AuthEnv>(async (c, next) => {
     )[0];
 
     if (!existing)
-      throw new AppError(
-        500,
-        'idempotency_state',
-        'Unable to read the idempotency state.',
-      );
+      throw new AppError(500, 'idempotency_state', 'Unable to read the idempotency state.');
 
     if (existing.request_hash !== requestHash)
       throw new AppError(
@@ -61,10 +57,7 @@ export const idempotency = createMiddleware<AuthEnv>(async (c, next) => {
       );
 
     c.header('Idempotent-Replayed', 'true');
-    return c.json(
-      existing.response_body ?? {},
-      existing.response_status as ContentfulStatusCode,
-    );
+    return c.json(existing.response_body ?? {}, existing.response_status as ContentfulStatusCode);
   }
   try {
     await next();

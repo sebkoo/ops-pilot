@@ -16,5 +16,4 @@ Namespace availability and trademark risk are two separate checks.
 Use "OpsPilot" in code now; run both checks before the first public announcement.
 
 ## Consequences
-
 A rename touches the Xcode project, bundle ID, README and CDK stack name.

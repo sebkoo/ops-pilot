@@ -1,19 +1,8 @@
 import { z } from 'zod';
 
-export const IssueCategory = z.enum([
-  'equipment',
-  'safety',
-  'cleanliness',
-  'inventory',
-  'other',
-]);
+export const IssueCategory = z.enum(['equipment', 'safety', 'cleanliness', 'inventory', 'other']);
 export const IssuePriority = z.enum(['low', 'medium', 'high', 'critical']);
-export const IssueStatus = z.enum([
-  'open',
-  'assigned',
-  'in_progress',
-  'resolved',
-]);
+export const IssueStatus = z.enum(['open', 'assigned', 'in_progress', 'resolved']);
 
 export const ALLOWED_TRANSITIONS: Record<
   z.infer<typeof IssueStatus>,
