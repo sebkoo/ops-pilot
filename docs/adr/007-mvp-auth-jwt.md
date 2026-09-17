@@ -1,7 +1,7 @@
 # ADR-007: MVP auth is self-signed JWT; production auth is opaque refresh tokens with rotation
 Date: 2026-09-03
 ## Status
-Accepted (MVP Scope) in Phase 4
+Accepted (MVP Scope): 2026-09-05
 ## Context
 A free Apple ID cannot use Sign in with Apple; auth is one middleware, so managed auth (Cognito, Auth0) is a swap later.
 ## Decision

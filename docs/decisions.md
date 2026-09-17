@@ -1,17 +1,21 @@
-# Decisions - why not X?
-
+# Decisions — why not X?
 Short answers first; the longer reasoning lives in `docs/adr/`.
 
-- **SwiftData, not CoreData** - new code, iOS 18+ target, far less boilerplate; hidden behind `IssueRepository`, so swapping back is one file.
-- **Hono, not Express** - Web-standard Request/Response, so the same app runs on Node, Lambda and Workers; only the entry file changes.
-- **PostgreSQL, not DynamoDB** - relational data (stores, users, issues, events), ad-hoc dashboard queries, transactions; writes stay in the hundreds of QPS even at scale.
-- **Own API, not Firebase/Supabase** - the backend design is the portfolio: idempotency, state machine, cursors; a BaaS would hide exactly what interviews ask about.
-- **Hand-rolled JWT, not Cognito/Auth0/Sign in with Apple** - a free Apple ID cannot use Sign in with Apple; auth is one middleware, so managed auth is a swap; refresh rotation and reuse detection are documented as not implemented yet.
-- **Lambda + Function URL, not ECS/EC2** - demo traffic, always-free limits, nothing to patch; pool and cold-start limits are known and the ECS Fargate + RDS migration is designed (ADR-006).
-- **Neon, not RDS** - RDS bills by the hour; Neon is Postgres-compatible with no card; production is a `DATABASE_URL` change.
-- **Own sync engine, not CloudKit/Firebase offline** - the web dashboard must see the same data, and the engine is where the interesting decisions live (rotating idempotency keys, server-wins, composite cursors).
-- **On-device AI as a fallback tier, not API-only** - $0, private, offline; quality is lower, so every suggestion is assistive and a human applies it.
-- **Monorepo** - one PR changes client, API and infra atomically; CODEOWNERS and path-filtered CI once a team grows.
-- **Plain SQL, not an ORM** - interviews ask about query plans, indexes and locking, which an ORM hides; the repository layer is the seam, so Prisma/Drizzle is a one-file adoption.
-- **Not Realm** - MongoDB ended Atlas Device SDK (Realm) support on 2025-09-30; nothing new should start on it.
-- **Lambda, not Vercel/Render** - Render's free tier sleeps after 15 min and takes about a minute to wake; Vercel Hobby is free but still serverless (cold starts reduced, not removed) and the database auto-suspend is the same; the target roles ask for AWS. The same Hono app deploys to Vercel with zero config if you prefer it.
+- **Node/TypeScript, not Vapor (server-side Swift)** — the point of this repo is that I cross the boundary, not that I stay in my language; most teams I would join run TypeScript/JVM/Go on the server, and an iOS engineer who can read and fix those PRs is worth more to them than one more Swift service. The domain model and the state machine are language-independent, so porting to Vapor is a week, not a rewrite.
+- **SwiftData, not Core Data** — new code, iOS 18+ target, far less boilerplate; hidden behind `IssueRepository`, so swapping back is one file.
+- **Hono, not Express** — Web-standard Request/Response, so the same app runs on Node, Lambda and Workers; only the entry file changes. (ADR-001)
+- **PostgreSQL, not DynamoDB** — relational data (stores, users, issues, events), ad-hoc dashboard queries, transactions; writes stay in the hundreds of QPS even at scale. (ADR-002)
+- **Own API, not Firebase/Supabase** — the backend design (idempotency, state machine, cursors) is the point of this repository; a BaaS would hide it.
+- **Hand-rolled JWT, not Cognito/Auth0/Sign in with Apple** — a free Apple ID cannot use Sign in with Apple; auth is one middleware, so managed auth is a swap; refresh rotation and reuse detection are documented as not implemented yet. (ADR-007)
+- **Lambda + Function URL, not ECS/EC2** — demo traffic, always-free limits, nothing to patch; pool and cold-start limits are known and the ECS Fargate + RDS migration is designed (ADR-006).
+- **Neon, not RDS** — RDS bills by the hour; Neon is Postgres-compatible with no card; production is a `DATABASE_URL` change.
+- **Own sync engine, not CloudKit/Firebase offline** — the web dashboard must see the same data, and the engine is where the interesting decisions live (rotating idempotency keys, server-wins, composite cursors). (ADR-003, ADR-004, ADR-005)
+- **On-device AI as a fallback tier, not API-only** — $0, private, offline; quality is lower, so every suggestion is assistive and a human applies it.
+- **Two roles, not a role hierarchy** — `staff` and `manager` are a deliberate reduction; adding tiers is one more value in a `CHECK` list, while the real design question is who may create whom. The extension path is staged: first let a `manager` deactivate `staff` (reusing the soft-delete column), then add an `admin` role and invite-token redemption once managers must manage each other. Self-service account deletion stays regardless — App Store 5.1.1(v) requires the user to be able to initiate it.
+- **Error codes, not server-rendered messages** — the API returns `{error:{code,message}}` and the client maps the code to its own localized string, falling back to `message` for unknown codes. Found while scoping localization: the client had been dropping the code, so 68 server-side strings ignored the device language. Localization itself is deferred — it is table stakes, not a differentiator.
+- **Monorepo** — one PR changes client, API and infra atomically; CODEOWNERS and path-filtered CI once a team grows.
+- **Vitest, not Jest or `node --test`** — ESM plus NodeNext `.js` imports need no transform config, and the whole `vitest.config.ts` is eight lines; the only real setting is `fileParallelism: false`, because the suite shares one real Postgres instead of mocks. `node --test` would run this code as-is on Node 24 (no enums, no path aliases), so switching is an `expect`→`assert` rewrite — team standard wins.
+- **A shell hook on `core.hooksPath`, not husky/lint-staged** — one file, zero dependencies, Swift and TypeScript in one hook, switched on by `npm install` through `prepare`; partial staging is the known limit and CI stays the real gate.
+- **Plain SQL, not an ORM** — query plans, indexes and locking stay visible in the code, which an ORM hides; the repository layer is the seam, so Prisma/Drizzle is a one-file adoption. (ADR-002; row types are checked against the live schema by a test)
+- **Not Realm** — MongoDB ended Atlas Device SDK (Realm) support on 2025-09-30; nothing new should start on it.
+- **Lambda, not Vercel/Render** — Render's free tier sleeps after 15 min and takes about a minute to wake; Vercel Hobby is free but still serverless (cold starts reduced, not removed) and the database autosuspend is the same; the target roles ask for AWS. The same Hono app deploys to Vercel with zero config if you prefer it.
