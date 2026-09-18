@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { one, query } from '../../db.js';
+import { query } from '../../db.js';
 import {
   type CreateIssueInput,
   type Issue,

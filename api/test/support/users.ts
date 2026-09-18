@@ -14,6 +14,7 @@ export const jsonHeaders = (token?: string, extra: Record<string, string> = {}) 
   ...extra,
 });
 
+export const bodyOf = async <T>(res: Response): Promise<T> => (await res.json()) as T;
 export interface TestUser {
   id: string;
   email: string;
@@ -31,13 +32,20 @@ export async function registerUser(
   const res = await app.request('/auth/register', {
     method: 'POST',
     headers: jsonHeaders(),
-    body: JSON.stringify({ email, password, displayName: `test ${label}` }),
+    body: JSON.stringify({
+      email,
+      password,
+      displayName: `test ${label}`,
+    }),
   });
 
   if (res.status !== 201) throw new Error(`register failed: ${res.status} ${await res.text()}`);
   let body = (await res.json()) as {
     user: { id: string; role: string };
-    tokens: { accessToken: string; refreshToken: string };
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+    };
   };
 
   if (role === 'manager' && body.user.role !== 'manager') {
@@ -61,4 +69,50 @@ export async function registerUser(
     token: body.tokens.accessToken,
     refreshToken: body.tokens.refreshToken,
   };
+}
+
+// Creates an issue and advances it to resolved: invoices can only be linked to resolved issues.
+export async function createResolvedIssue(
+  app: Hono,
+  manager: TestUser,
+): Promise<{
+  id: string;
+  version: number;
+}> {
+  const headers = jsonHeaders(manager.token);
+  const created = await app.request('/issues', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      title: 'Freezer compressor repair',
+      category: 'equipment',
+      priority: 'high',
+      location: 'Store 128',
+    }),
+  });
+  let issue = (await created.json()) as {
+    id: string;
+    version: number;
+  };
+  for (const step of [
+    { status: 'assigned', assignee: 'Minsoo Kim' },
+    { status: 'in_progress' },
+    { status: 'resolved' },
+  ]) {
+    const res = await app.request(`/issues/${issue.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        version: issue.version,
+        ...step,
+      }),
+    });
+    if (res.status !== 200)
+      throw new Error(`transition to ${step.status} failed: ${res.status} ${await res.text()}`);
+    issue = (await res.json()) as {
+      id: string;
+      version: number;
+    };
+  }
+  return issue;
 }

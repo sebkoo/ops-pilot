@@ -6,7 +6,10 @@ export type EventKind =
   | 'issue_updated'
   | 'status_changed'
   | 'ai_suggestion_created'
-  | 'ai_suggestion_applied';
+  | 'ai_suggestion_applied'
+  | 'invoice_created'
+  | 'invoice_paid'
+  | 'invoice_refunded';
 
 export const IssueEventRow = z.object({
   id: z.string(),
@@ -33,11 +36,7 @@ export async function recordEvent(
 
 export const listEvents = (issueId: string) =>
   query<IssueEventRow>(
-    `SELECT id, 
-      kind, 
-      actor_id, 
-      payload, 
-      created_at 
+    `SELECT id, kind, actor_id, payload, created_at 
      FROM issue_events 
      WHERE issue_id = $1
      ORDER BY id`,

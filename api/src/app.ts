@@ -4,6 +4,7 @@ import { requestId } from 'hono/request-id';
 import { onError, onNotFound } from './errors.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { issueRoutes } from './modules/issues/issue.routes.js';
+import { invoiceRoutes } from './modules/payments/invoice.routes.js';
 import { syncRoutes } from './modules/sync/sync.routes.js';
 
 export const app = new Hono();
@@ -22,6 +23,7 @@ app.get('/health', (c) =>
 app.route('/auth', authRoutes);
 app.route('/issues', issueRoutes);
 app.route('/sync', syncRoutes);
+app.route('/invoices', invoiceRoutes);
 
 app.onError(onError);
 app.notFound(onNotFound);

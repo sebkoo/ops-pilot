@@ -4,11 +4,13 @@ import { closePool, query } from '../src/db.js';
 import { UserRow } from '../src/modules/auth/auth.repo.js';
 import { IssueEventRow } from '../src/modules/issues/event.repo.js';
 import { IssueRow } from '../src/modules/issues/issue.repo.js';
+import { InvoiceRow } from '../src/modules/payments/invoice.repo.js';
 
 const tables = {
   users: UserRow,
   issues: IssueRow,
   issue_events: IssueEventRow,
+  invoices: InvoiceRow,
 };
 
 beforeAll(() => {

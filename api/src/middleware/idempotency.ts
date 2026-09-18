@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createMiddleware } from 'hono/factory';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { query } from '../db.js';
+import { one, query } from '../db.js';
 import { AppError } from '../errors.js';
 import type { AuthEnv } from './auth.js';
 
@@ -31,13 +31,13 @@ export const idempotency = createMiddleware<AuthEnv>(async (c, next) => {
     [userId, key, requestHash],
   );
   if (claimed.length === 0) {
-    const existing = (
-      await query<Claim>(
-        `SELECT status, request_hash, response_status, response_body
-         FROM idempotency_keys WHERE user_id = $1 AND key = $2`,
-        [userId, key],
-      )
-    )[0];
+    const existing = await one<Claim>(
+      `SELECT status, request_hash, response_status, response_body
+       FROM idempotency_keys 
+       WHERE user_id = $1 
+        AND key = $2`,
+      [userId, key],
+    );
 
     if (!existing)
       throw new AppError(500, 'idempotency_state', 'Unable to read the idempotency state.');
