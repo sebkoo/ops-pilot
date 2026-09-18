@@ -17,7 +17,7 @@ The app reaches storage only through an `IssueRepository` protocol, so no view k
 - Keyset pagination on `(created_at, id)`: no OFFSET, stable while rows are inserted
 - Optimistic locking (`WHERE version = $n` → 409) and a server-enforced state machine (422 on illegal transitions)
 - One error envelope `{ error: { code, message, details } }` so clients branch on codes, not prose
-- Integration tests hit a real PostgreSQL through `app.request()` — no port, no mocks
+- Integration tests hit a real PostgreSQL through `app.request()` — no port, and the only injected double is the Stripe client, behind a five-method interface
 - Domain model separated from the persistence model on iOS; the repository was swapped without touching a view
 - Account deletion is a soft delete: the row is anonymized and kept so audit history survives, with a partial unique index (`WHERE deleted_at IS NULL`) so the same email can register again: App Store 5.1.1(v) requires in-app deletion
 - 15-minute access tokens and a 30-day refresh token; `/auth/refresh` re-checks that the user still exists, so a deleted account is cut off at the next refresh. Rotation and reuse detection are documented as not implemented (ADR-007)
