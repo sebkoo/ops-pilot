@@ -3,17 +3,18 @@ import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
 import { closePool, one, query } from '../src/db.js';
 import { useStripeClient } from '../src/modules/payments/stripe.js';
-import { FakeStripe, TEST_WEBHOOK_SECRET } from './support/fakeStripe.js';
+import { FakeStripe, useTestStripeEnv } from './support/fakeStripe.js';
 import {
   bodyOf,
   createResolvedIssue,
+  errorCodeOf,
+  idOf,
   jsonHeaders,
   registerUser,
   type TestUser,
 } from './support/users.js';
 
 type IdBody = { id: string };
-type ErrorBody = { error: { code: string } };
 type IntentBody = {
   clientSecret: string;
   publishableKey: string;
@@ -25,9 +26,7 @@ let manager: TestUser;
 let staff: TestUser;
 
 beforeAll(async () => {
-  process.env.STRIPE_SECRET_KEY = 'sk_test_vitest';
-  process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_vitest';
-  process.env.STRIPE_WEBHOOK_SECRET = TEST_WEBHOOK_SECRET;
+  useTestStripeEnv();
   initConfig();
   useStripeClient(stripe);
   manager = await registerUser(app, 'manager');
@@ -72,7 +71,7 @@ describe('invoices (p.4)', () => {
       amountCents: 12900,
     });
     expect(early.status).toBe(422);
-    expect((await bodyOf<ErrorBody>(early)).error.code).toBe('issue_not_resolved');
+    expect(await errorCodeOf(early)).toBe('issue_not_resolved');
 
     const fraction = await post('/invoices', manager.token, {
       issueId: issue.id,
@@ -80,7 +79,7 @@ describe('invoices (p.4)', () => {
       amountCents: 129.5,
     });
     expect(fraction.status).toBe(400);
-    expect((await bodyOf<ErrorBody>(fraction)).error.code).toBe('validation_error');
+    expect(await errorCodeOf(fraction)).toBe('validation_error');
 
     const ok = await post('/invoices', manager.token, {
       issueId: issue.id,
@@ -114,7 +113,7 @@ describe('invoices (p.4)', () => {
     expect(second.headers.get('idempotent-replayed')).toBe('true');
 
     const invoice = await bodyOf<IdBody>(first);
-    expect((await bodyOf<IdBody>(second)).id).toBe(invoice.id);
+    expect(await idOf(second)).toBe(invoice.id);
 
     const counted = await one<{ count: string }>(
       `SELECT count(*)::text AS count 
@@ -163,7 +162,7 @@ it('Refunds for paid invoices: unpaid returns 409, paid returns 202 and creates 
   const invoice = await bodyOf<IdBody>(created);
   const tooEarly = await post(`/invoices/${invoice.id}/refund`, manager.token, {});
   expect(tooEarly.status).toBe(409);
-  expect((await bodyOf<ErrorBody>(tooEarly)).error.code).toBe('not_refundable');
+  expect(await errorCodeOf(tooEarly)).toBe('not_refundable');
 
   await post(`/invoices/${invoice.id}/payment-intent`, manager.token, {});
   await query(

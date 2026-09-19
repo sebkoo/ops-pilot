@@ -70,3 +70,10 @@ export const stripeEvent = (id: string, type: string, object: Record<string, unk
     created: Math.floor(Date.now() / 1000),
     data: { object },
   });
+
+// Three test Stripe keys: set them before calling initConfig()
+export function useTestStripeEnv(): void {
+  process.env.STRIPE_SECRET_KEY = 'sk_test_vitest';
+  process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_vitest';
+  process.env.STRIPE_WEBHOOK_SECRET = TEST_WEBHOOK_SECRET;
+}
