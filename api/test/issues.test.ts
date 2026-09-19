@@ -135,7 +135,12 @@ describe('issues API', () => {
     const res = await app.request('/issues', json({ title: '', category: 'nope' }));
     expect(res.status).toBe(400);
 
-    const body = await read<{ error: { code: string; details: unknown[] } }>(res);
+    const body = await read<{
+      error: {
+        code: string;
+        details: unknown[];
+      };
+    }>(res);
     expect(body.error.code).toBe('validation_error');
     expect(body.error.details.length).toBeGreaterThan(0);
   });
