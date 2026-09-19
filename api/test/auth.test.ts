@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
 import { closePool } from '../src/db.js';
-import { errorCodeOf, idOf, jsonHeaders, uniqueEmail } from './support/users.js';
+import type { ErrorBody } from '../src/errors.js';
+import { bodyOf, errorCodeOf, idOf, jsonHeaders, uniqueEmail } from './support/users.js';
 
 beforeAll(() => {
   initConfig();
@@ -89,9 +90,10 @@ describe('auth (4.4)', () => {
     });
     expect(wrong.status).toBe(401);
     expect(nobody.status).toBe(401);
-    expect(((await wrong.json()) as { error: unknown }).error).toEqual(
-      ((await nobody.json()) as { error: unknown }).error,
-    );
+
+    const wrongBody = await bodyOf<ErrorBody>(wrong);
+    const noBody = await bodyOf<ErrorBody>(nobody);
+    expect(wrongBody.error).toEqual(noBody.error);
   });
 
   it(`Tokens have distinct types - only refresh tokens can obtain a new token pair, and 
