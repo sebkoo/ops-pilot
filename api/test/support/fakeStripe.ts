@@ -62,7 +62,11 @@ export class FakeStripe implements StripeClient {
   }
 }
 
-export const stripeEvent = (id: string, type: string, object: Record<string, unknown>): string =>
+export const stripeEvent = (
+  type: Stripe.Event.Type,
+  object: Record<string, unknown>,
+  id = `evt_${crypto.randomUUID()}`,
+): string =>
   JSON.stringify({
     id,
     object: 'event',
