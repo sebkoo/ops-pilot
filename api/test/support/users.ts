@@ -1,5 +1,6 @@
 import type { Hono } from 'hono';
 import { query } from '../../src/db.js';
+import type { ErrorBody } from '../../src/errors.js';
 
 let ipCounter = 0;
 
@@ -15,6 +16,12 @@ export const jsonHeaders = (token?: string, extra: Record<string, string> = {}) 
 });
 
 export const bodyOf = async <T>(res: Response): Promise<T> => (await res.json()) as T;
+// One-word error code in the response: this is usually all the tests actually care about.
+export const errorCodeOf = async (res: Response): Promise<string> =>
+  (await bodyOf<ErrorBody>(res)).error.code;
+// The ID of the object just created: when the rest of the response body is not needed
+export const idOf = async (res: Response): Promise<string> =>
+  (await bodyOf<{ id: string }>(res)).id;
 export interface TestUser {
   id: string;
   email: string;

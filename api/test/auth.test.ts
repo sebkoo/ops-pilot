@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
 import { closePool } from '../src/db.js';
-import { jsonHeaders, uniqueEmail } from './support/users.js';
+import { errorCodeOf, idOf, jsonHeaders, uniqueEmail } from './support/users.js';
 
 beforeAll(() => {
   initConfig();
@@ -18,8 +18,6 @@ const post = (path: string, body: unknown, token?: string) =>
     headers: jsonHeaders(token),
     body: JSON.stringify(body),
   });
-const codeOf = async (res: Response) =>
-  ((await res.json()) as { error: { code: string } }).error.code;
 type AuthBody = {
   user: {
     id: string;
@@ -66,7 +64,7 @@ describe('auth (4.4)', () => {
       displayName: 'Second User',
     });
     expect(again.status).toBe(409);
-    expect(await codeOf(again)).toBe('email_taken');
+    expect(await errorCodeOf(again)).toBe('email_taken');
 
     const short = await post('/auth/register', {
       email: uniqueEmail('short'),
@@ -74,7 +72,7 @@ describe('auth (4.4)', () => {
       displayName: 'Too Short',
     });
     expect(short.status).toBe(400);
-    expect(await codeOf(short)).toBe('validation_error');
+    expect(await errorCodeOf(short)).toBe('validation_error');
   });
 
   it(`Uses the same 401 invalid_credentials response for a wrong password 
@@ -118,14 +116,14 @@ describe('auth (4.4)', () => {
       refreshToken: reg.tokens.accessToken,
     });
     expect(wrongType.status).toBe(401);
-    expect(await codeOf(wrongType)).toBe('refresh_invalid');
+    expect(await errorCodeOf(wrongType)).toBe('refresh_invalid');
     expect((await post('/auth/refresh', { refreshToken: 'not.a.jwt' })).status).toBe(401);
 
     const me = await app.request('/auth/me', {
       headers: jsonHeaders(reg.tokens.accessToken),
     });
     expect(me.status).toBe(200);
-    expect(((await me.json()) as { id: string }).id).toBe(reg.user.id);
+    expect(await idOf(me)).toBe(reg.user.id);
     expect(
       (
         await app.request('/auth/me', {

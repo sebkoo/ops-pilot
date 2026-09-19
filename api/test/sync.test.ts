@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
 import { closePool } from '../src/db.js';
+import { bodyOf, errorCodeOf, idOf } from './support/users.js';
 
 let headers: Record<string, string> = { 'content-type': 'application/json' };
 const json = (body: unknown, method = 'POST', extra: Record<string, string> = {}): RequestInit => ({
@@ -9,7 +10,6 @@ const json = (body: unknown, method = 'POST', extra: Record<string, string> = {}
   headers: { ...headers, ...extra },
   body: JSON.stringify(body),
 });
-const read = <T>(res: Response) => res.json() as Promise<T>;
 type Page = {
   items: Array<{ id: string }>;
   cursor: string | null;
@@ -27,7 +27,7 @@ beforeAll(async () => {
     }),
   );
   if (res.status !== 201) throw new Error(`register failed: ${res.status} ${await res.text()}`);
-  const { tokens } = await read<{ tokens: { accessToken: string } }>(res);
+  const { tokens } = await bodyOf<{ tokens: { accessToken: string } }>(res);
   headers = { ...headers, authorization: `Bearer ${tokens.accessToken}` };
 });
 afterAll(async () => {
@@ -47,10 +47,10 @@ describe('sync', () => {
     const second = await app.request('/issues', json(body, 'POST', { 'idempotency-key': key }));
     expect(first.status).toBe(201);
     expect(second.headers.get('idempotent-replayed')).toBe('true');
-    expect((await read<{ id: string }>(second)).id).toBe((await read<{ id: string }>(first)).id);
+    expect(await idOf(second)).toBe(await idOf(first));
   });
 
-  it('returns 200 on a second reqeust with the same ID and creates only one issue', async () => {
+  it('returns 200 on a second request with the same ID and creates only one issue', async () => {
     const id = crypto.randomUUID();
     const body = {
       id,
@@ -85,14 +85,12 @@ describe('sync', () => {
       }),
     );
     expect(reused.status).toBe(422);
-    expect((await read<{ error: { code: string } }>(reused)).error.code).toBe(
-      'idempotency_key_reused',
-    );
+    expect(await errorCodeOf(reused)).toBe('idempotency_key_reused');
   });
 
   it('returns only changes after the cursor and does not miss records with the same timestamp', async () => {
     const first = await app.request('/sync/changes?limit=1', { headers });
-    const page1 = await read<Page>(first);
+    const page1 = await bodyOf<Page>(first);
     expect(page1.cursor).toBeTruthy();
     const seen = new Set<string>(page1.items.map((i) => i.id));
     let cursor = page1.cursor;
@@ -100,7 +98,7 @@ describe('sync', () => {
       const res = await app.request(`/sync/changes?limit=1&cursor=${encodeURIComponent(cursor)}`, {
         headers,
       });
-      const page = await read<Page>(res);
+      const page = await bodyOf<Page>(res);
       if (page.items.length === 0) break;
       for (const item of page.items) {
         expect(seen.has(item.id)).toBe(false);
@@ -108,7 +106,7 @@ describe('sync', () => {
       }
       cursor = page.cursor;
     }
-    const all = await read<Page>(await app.request('/sync/changes?limit=500', { headers }));
+    const all = await bodyOf<Page>(await app.request('/sync/changes?limit=500', { headers }));
     expect(all.hasMore).toBe(false);
     expect(seen.size).toBe(all.items.length);
   });
