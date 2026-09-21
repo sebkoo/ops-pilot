@@ -9,7 +9,7 @@ The short version: *AI output is a draft under review. It is never a merge.*
 ## Where I use them
 
 | Task | Tool | Why it fits | How I verify |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Scaffolding and config (Dockerfile, CI YAML, tsconfig, CDK boilerplate) | Claude | No design decisions, high typing cost | The pipeline has to actually run green |
 | Enumerating test cases ("what else breaks?") | Claude | Good at the cases I stop thinking of | Every case must **fail first**, then pass |
 | Mechanical refactors across many files | Claude | Wide and repetitive, easy to review as a diff | `git diff` hunk by hunk + full suite |

@@ -1,4 +1,5 @@
 # Decisions — why not X?
+
 Short answers first; the longer reasoning lives in `docs/adr/`.
 
 - **Node/TypeScript, not Vapor (server-side Swift)** — the point of this repo is that I cross the boundary, not that I stay in my language; most teams I would join run TypeScript/JVM/Go on the server, and an iOS engineer who can read and fix those PRs is worth more to them than one more Swift service. The domain model and the state machine are language-independent, so porting to Vapor is a week, not a rewrite.
