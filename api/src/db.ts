@@ -34,8 +34,16 @@ export async function closePool(): Promise<void> {
   pool = undefined;
 }
 
+// All we need is something that can execute a query once
+// whether it's a pool, a checked-out connection, or a transaction handle.
+export interface Queryable {
+  query<Row extends pg.QueryResultRow>(
+    text: string,
+    params?: unknown[],
+  ): Promise<pg.QueryResult<Row>>;
+}
 // Transaction-scoped database handle: run queries only via its connection, never the pool.
-export interface Txn {
+export interface Txn extends Queryable {
   query<Row extends pg.QueryResultRow>(
     text: string,
     params?: unknown[],
