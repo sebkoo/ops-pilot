@@ -50,9 +50,31 @@ export async function seedInvoice(
 // Move the timestamp backward since we cannot wait 10 minutes in a test.
 export async function oldInvoice(id: string, minutesAgo: number): Promise<void> {
   await query(
-    `UPDATE invoice
+    `UPDATE invoices
      SET updated_at = now() - make_interval(mins => $2)
      WHERE id = $1`,
     [id, minutesAgo],
   );
 }
+
+// The two fields tests actually inspect from one invoice row.
+export interface InvoiceRow {
+  status: string;
+  version: number;
+}
+
+// Query the database directly
+// Bypass the route to verify the server actually persisted the expected state.
+export async function invoiceRow(id: string): Promise<InvoiceRow> {
+  const row = await one<InvoiceRow>(
+    `SELECT status, version
+     FROM invoices
+     WHERE id = $1`,
+    [id],
+  );
+  if (!row) throw new Error(`invoice ${id} not found`);
+  return row;
+}
+
+// One-word status
+export const statusOf = async (id: string): Promise<string> => (await invoiceRow(id)).status;

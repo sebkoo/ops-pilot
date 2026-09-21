@@ -2,10 +2,10 @@ import type Stripe from 'stripe';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
-import { closePool, one, query } from '../src/db.js';
+import { closePool, query } from '../src/db.js';
 import { useStripeClient } from '../src/modules/payments/stripe.js';
 import { FakeStripe, stripeEvent, useTestStripeEnv } from './support/fakeStripe.js';
-import { seedInvoice } from './support/invoices.js';
+import { invoiceRow, seedInvoice, statusOf } from './support/invoices.js';
 import { bodyOf, errorCodeOf, registerUser, type TestUser } from './support/users.js';
 
 const stripe = new FakeStripe();
@@ -38,24 +38,6 @@ const deliver = (payload: string, signature = stripe.sign(payload)) =>
 // One payment_intent event
 const piEvent = (type: Stripe.Event.Type, id: string) =>
   stripeEvent(type, { object: 'payment_intent', id });
-
-const invoiceRow = async (id: string) => {
-  const row = await one<{
-    status: string;
-    version: number;
-  }>(
-    `SELECT status, version
-     FROM invoices
-     WHERE id = $1`,
-    [id],
-  );
-  if (!row) throw new Error(`invoice ${id} not found`);
-
-  return row;
-};
-
-// One-word status: same name and same type as in P.6 `reconcile.test.ts`
-const statusOf = async (id: string) => (await invoiceRow(id)).status;
 
 describe('stripe webhook (P.5)', () => {
   it('returns 400 with the signature missing or invalid: accepts genuinely signed requests only', async () => {
