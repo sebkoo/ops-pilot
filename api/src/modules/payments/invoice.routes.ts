@@ -1,29 +1,64 @@
 import { Hono } from 'hono';
+import type { ErrorBody } from '../../errors.js';
 import { AppError } from '../../errors.js';
 import { type AuthEnv, requireAuth, requireRole } from '../../middleware/auth.js';
 import { idempotency } from '../../middleware/idempotency.js';
 import { validate } from '../../validate.js';
 import { recordEvent } from '../issues/event.repo.js';
 import { getIssue } from '../issues/issue.repo.js';
+import { spread } from './allocation.js';
 import {
   attachPaymentIntent,
   getInvoice,
   insertInvoice,
   listInvoices,
+  listLines,
+  recordRefund,
+  refundedTotal,
   transitionInvoice,
 } from './invoice.repo.js';
-import { CreateInvoiceSchema, InvoiceIdParam, IssueIdQuery } from './invoice.schema.js';
+import {
+  CreateInvoiceSchema,
+  InvoiceIdParamSchema,
+  IssueIdQuerySchema,
+  RefundSchema,
+} from './invoice.schema.js';
 import { publishableKey, stripe } from './stripe.js';
+
+// When to refuse a refund
+// The shopper-facing sentence lives with the reason,
+// so the app never has to invent wording for a case the server knows about.
+type RefundRefusal =
+  | { code: 'not_paid' }
+  | { code: 'already_refunded' }
+  | { code: 'exceeds_remaining'; remainingCents: number }
+  | { code: 'no_lines' };
+
+const REFUSAL_MESSAGE: Record<RefundRefusal['code'], string> = {
+  not_paid: 'This invoice has not been paid yet.',
+  already_refunded: 'This invoice has already been fully refunded.',
+  exceeds_remaining: 'The amount is larger than what is left to refund.',
+  no_lines: 'This invoice has no lines to allocate a refund across.',
+};
+
+// Convert one refund refusal into the standard response shape
+const fail = (code: RefundRefusal['code'], details: unknown = null): ErrorBody => ({
+  error: {
+    code,
+    message: REFUSAL_MESSAGE[code],
+    details,
+  },
+});
 
 export const invoiceRoutes = new Hono<AuthEnv>();
 invoiceRoutes.use('*', requireAuth);
 invoiceRoutes.use('*', idempotency);
 
-invoiceRoutes.get('/', validate('query', IssueIdQuery), async (c) => {
+invoiceRoutes.get('/', validate('query', IssueIdQuerySchema), async (c) => {
   return c.json({ invoices: await listInvoices(c.req.valid('query').issueId) });
 });
 
-invoiceRoutes.get('/:id', validate('param', InvoiceIdParam), async (c) => {
+invoiceRoutes.get('/:id', validate('param', InvoiceIdParamSchema), async (c) => {
   const invoice = await getInvoice(c.req.valid('param').id);
   if (!invoice) throw new AppError(404, 'not_found', 'Invoice could not be found.');
   return c.json(invoice);
@@ -54,7 +89,7 @@ invoiceRoutes.post(
 invoiceRoutes.post(
   '/:id/payment-intent',
   requireRole('manager'),
-  validate('param', InvoiceIdParam),
+  validate('param', InvoiceIdParamSchema),
   async (c) => {
     const invoice = await getInvoice(c.req.valid('param').id);
     if (!invoice) throw new AppError(404, 'not_found', 'Invoice could not found.');
@@ -97,18 +132,40 @@ invoiceRoutes.post(
 invoiceRoutes.post(
   '/:id/refund',
   requireRole('manager'),
-  validate('param', InvoiceIdParam),
+  validate('param', InvoiceIdParamSchema),
+  validate('json', RefundSchema),
   async (c) => {
+    const body = c.req.valid('json');
+
     const invoice = await getInvoice(c.req.valid('param').id);
     if (!invoice) throw new AppError(404, 'not_found', 'Invoice could not be found.');
     if (invoice.status !== 'paid' || !invoice.paymentIntentId)
       throw new AppError(409, 'not_refundable', 'Only paid invoices can be refunded.', {
         status: invoice.status,
       });
-    await stripe().refunds.create(
-      { payment_intent: invoice.paymentIntentId },
-      { idempotencyKey: `refund:${invoice.id}` },
+
+    const lines = await listLines(invoice.id);
+    if (lines.length === 0) return c.json(fail('no_lines'), 422);
+
+    const alreadyRefunded = await refundedTotal(invoice.id);
+    const remaining = invoice.amountCents - alreadyRefunded;
+    if (remaining <= 0) return c.json(fail('already_refunded'), 422);
+    if (body.amountCents > remaining) {
+      return c.json(fail('exceeds_remaining', { remainingCents: remaining }), 422);
+    }
+    const allocation = spread(
+      body.amountCents,
+      lines.map((line) => ({
+        id: line.id,
+        weight: line.amountCents,
+      })),
     );
-    return c.json({ accepted: true }, 202);
+
+    const refund = await stripe().refunds.create(
+      { payment_intent: invoice.paymentIntentId, amount: body.amountCents },
+      { idempotencyKey: `refund:${invoice.id}:${alreadyRefunded}` },
+    );
+
+    await recordRefund(invoice.id, body.amountCents, body.reason, refund.id, allocation);
   },
 );

@@ -30,6 +30,7 @@ export const idempotency = createMiddleware<AuthEnv>(async (c, next) => {
      RETURNING key`,
     [userId, key, requestHash],
   );
+
   if (claimed.length === 0) {
     const existing = await one<Claim>(
       `SELECT status, request_hash, response_status, response_body
@@ -59,6 +60,7 @@ export const idempotency = createMiddleware<AuthEnv>(async (c, next) => {
     c.header('Idempotent-Replayed', 'true');
     return c.json(existing.response_body ?? {}, existing.response_status as ContentfulStatusCode);
   }
+
   try {
     await next();
   } catch (error) {
@@ -69,6 +71,7 @@ export const idempotency = createMiddleware<AuthEnv>(async (c, next) => {
     );
     throw error;
   }
+
   if (c.res.status >= 200 && c.res.status < 300) {
     const body = await c.res
       .clone()

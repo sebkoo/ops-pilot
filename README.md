@@ -1,9 +1,10 @@
 # OpsPilot
+
 Offline-first field-operations app for store staff: report an issue on the floor, move it through a state machine, keep working without network.
 
 ![Demo](docs/demo.gif)
 
-**Stack** SwiftUI · SwiftData · Node/TypeScript · PostgreSQL — **Live** runs locally today (public API after Phase 7) — **Contact** seb.m.koo@gmail.com · [LinkedIn](https://linkedin.com/in/koo-ben)
+**Stack** SwiftUI · SwiftData · Node/TypeScript · PostgreSQL — **Live** runs locally today (public API after Phase 7) — **Contact** <seb.m.koo@gmail.com> · [LinkedIn](https://linkedin.com/in/koo-ben)
 
 <details><summary><b>Architecture (today)</b></summary>
 
@@ -14,21 +15,23 @@ The app reaches storage only through an `IssueRepository` protocol, so no view k
 
 <details><summary><b>Engineering notes</b></summary>
 
-- Keyset pagination on `(created_at, id)`: no OFFSET, stable while rows are inserted
-- Optimistic locking (`WHERE version = $n` → 409) and a server-enforced state machine (422 on illegal transitions)
-- One error envelope `{ error: { code, message, details } }` so clients branch on codes, not prose
-- Integration tests hit a real PostgreSQL through `app.request()` — no port, and the only injected double is the Stripe client, behind a five-method interface
-- Domain model separated from the persistence model on iOS; the repository was swapped without touching a view
-- Account deletion is a soft delete: the row is anonymized and kept so audit history survives, with a partial unique index (`WHERE deleted_at IS NULL`) so the same email can register again: App Store 5.1.1(v) requires in-app deletion
-- 15-minute access tokens and a 30-day refresh token; `/auth/refresh` re-checks that the user still exists, so a deleted account is cut off at the next refresh. Rotation and reuse detection are documented as not implemented (ADR-007)
-- Row types are zod objects and a test compares each with `information_schema` on every run: the core of what an ORM buys, without one (ADR-002)
-- Writes are queued as an outbox row in the same local transaction as the change, so a crash between "saved" and "sent" cannot lose an edit
-- Each queued write carries an idempotency key the server stores and replays, so a retry after a timeout returns the first result instead of creating a duplicate (ADR-005)
-- Delta pull uses a composite `(updated_at, id)` cursor: a plain timestamp cursor drops or repeats rows that share a millisecond (ADR-004)
-- Conflicts resolve server-wins on `version`, and the loser is surfaced in the UI rather than silently discarded (ADR-003)
-- Operations the server rejects for good (400 · 403 · 404 · 422) leave the queue for a dead-letter row the user can inspect and clear, so one bad edit never blocks the rest
-- Networking sits behind an `HTTPTransport` protocol, so the whole client stack is tested against a stubbed transport with no server running
-- Next: production hardening (structured logs, rate limiting, `/ready`, graceful shutdown) → Lambda + CDK + Neon inside always-free limits
+- **Keyset pagination**: `(created_at, id)` cursor instead of OFFSET - pages stay stable while rows are inserted
+- **Optimistic locking + state machine**: `WHERE version = $n` turns a stable write into 409; a server-enforced state machine turns an illegal transition into 422
+- **One error envelope**: `{ error: { code, message, details } }` on every failure, so clients branch on codes, not prose
+- **Integration tests on real PostgreSQL**: requests go through `app.request()` — no port, no mocks
+- **Domain vs. persistence model (iOS)**: separate the two, so the repository was swapped without touching a view
+- **Soft-delete account**: anonymize the row and kept so audit history survives, a partial unique index (`WHERE deleted_at IS NULL`) lets the same email register again: App Store 5.1.1(v) requires in-app deletion
+- **Short-lived tokens**: 15-minute access and 30-day refresh; `/auth/refresh` re-checks that the user still exists, so cut off a deleted account at the next refresh. Document rotation and reuse detection as not implemented (ADR-007)
+- **Schema drift test**: row types are zod objects, and a test compares each with `information_schema` on every run - the core of what an ORM buys, without one (ADR-002)
+- **Outbox**: queue a write in the same local transaction as the change, so a crash between "saved" and "sent" cannot lose an edit
+- **Idempotent replay**: each queued write carries a key the server stores and replays, so a retry after a timeout returns the first result instead of creating a duplicate (ADR-005)
+- **Composite sync cursor**: delta pull uses `(updated_at, id)` - a plain timestamp cursor drops or repeats rows that share a millisecond (ADR-004)
+- **Server-wins conflicts**: resolved on `version`, and the loser is surfaced in the UI rather than silently discarded (ADR-003)
+- **Dead-letter row**: operations the server rejects for good (400 · 403 · 404 · 422) leave the queue for a row the user can inspect and clear, so one bad edit never blocks the rest
+- **Transport protocol (iOS)**: networking sits behind `HTTPTransport` to test the whole client stack against a stub with no server running
+- **Invoice lines, not a single total**: partial refunds and tax categories need line-level attribution; a one-line invoice behaves exactly as before (ADR-008)
+- **Floor and largest remainder, not round-half-up**: over-allocation becomes impossible by construction; the customer loses at most one cent; the rule lives in one function (ADR-009)
+- **Next**: production hardening (structured logs, rate limiting, `/ready`, graceful shutdown) → Lambda + CDK + Neon inside always-free limits
 
 </details>
 

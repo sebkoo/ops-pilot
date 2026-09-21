@@ -142,7 +142,7 @@ describe('issues API', () => {
       };
     }>(res);
     expect(body.error.code).toBe('validation_error');
-    expect(body.error.details.length).toBeGreaterThan(0);
+    expect(body.error.details).not.toHaveLength(0);
   });
 
   it('returns 401 when no token is provided', async () => {

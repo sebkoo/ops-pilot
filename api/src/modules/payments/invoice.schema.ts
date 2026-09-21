@@ -22,3 +22,10 @@ const ALLOWED: Record<InvoiceStatus, readonly InvoiceStatus[]> = {
 };
 export const canTransition = (from: InvoiceStatus, to: InvoiceStatus): boolean =>
   ALLOWED[from].includes(to);
+
+// The core of a partial refund: how much and why
+export const RefundSchema = z.object({
+  amountCents: z.number().int().positive(),
+  reason: z.string().trim().min(1).max(200),
+});
+export type RefundInput = z.infer<typeof RefundSchema>;
