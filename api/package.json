@@ -17,6 +17,7 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "migrate": "node --env-file=.env --import tsx scripts/migrate.ts",
+    "reconcile": "node --env-file=.env --import tsx scripts/reconcile.ts",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down"
   },
