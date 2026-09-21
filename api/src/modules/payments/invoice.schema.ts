@@ -10,8 +10,8 @@ export const CreateInvoiceSchema = z.object({
 });
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
 
-export const InvoiceIdParam = z.object({ id: z.uuid() });
-export const IssueIdQuery = z.object({ issueId: z.uuid() });
+export const InvoiceIdParamSchema = z.object({ id: z.uuid() });
+export const IssueIdQuerySchema = z.object({ issueId: z.uuid() });
 
 const ALLOWED: Record<InvoiceStatus, readonly InvoiceStatus[]> = {
   unpaid: ['processing'],
