@@ -12,8 +12,7 @@ create table if not exists invoices (
   version integer not null default 1
 );
 
-create index if not exists invoices_issue_idx 
-on invoices (issue_id, created_at desc);
+create index if not exists invoices_issue_idx on invoices (issue_id, created_at desc);
 
 create table if not exists stripe_events (
   id text primary key,
