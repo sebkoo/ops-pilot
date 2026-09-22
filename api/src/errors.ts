@@ -2,11 +2,11 @@ import type { ErrorHandler, NotFoundHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-export interface ErrorBody {
+export interface ErrorBody<Details = unknown> {
   error: {
     code: string;
     message: string;
-    details: unknown;
+    details: Details;
   };
 }
 
