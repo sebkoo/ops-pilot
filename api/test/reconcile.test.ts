@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
-import { closePool, getPool, withTransaction } from '../src/db.js';
+import { closePool, getPool, query, withTransaction } from '../src/db.js';
 import { claimStale, reconcileOnce } from '../src/modules/payments/reconcile.js';
 import { useStripeClient } from '../src/modules/payments/stripe.js';
 import { FakeStripe, useTestStripeEnv } from './support/fakeStripe.js';
-import { oldInvoice, type SeededInvoice, seedInvoice, statusOf } from './support/invoices.js';
+import { ageInvoice, type SeededInvoice, seedInvoice, statusOf } from './support/invoices.js';
 import { registerUser, type TestUser } from './support/users.js';
 
 const stripe = new FakeStripe();
@@ -16,6 +16,10 @@ beforeAll(async () => {
   initConfig();
   useStripeClient(stripe);
   manager = await registerUser(app, 'manager');
+  await query(`
+    UPDATE invoices
+    SET updated_at = now()
+    WHERE status = 'processing'`);
 });
 afterAll(async () => {
   useStripeClient(null);
@@ -30,7 +34,7 @@ const STALE_AFTER_MINUTES = 10;
 // Simulate a missed webhook.
 const staleInvoice = async (minutesAgo = STALE_AFTER_MINUTES + 1): Promise<SeededInvoice> => {
   const invoice = await seedInvoice(app, manager);
-  await oldInvoice(invoice.id, minutesAgo);
+  await ageInvoice(invoice.id, minutesAgo);
   return invoice;
 };
 
