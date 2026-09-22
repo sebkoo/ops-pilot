@@ -1,5 +1,6 @@
 import type { Hono } from 'hono';
 import { one, query } from '../../src/db.js';
+import type { InvoiceLineInput } from '../../src/modules/payments/invoice.schema.js';
 import { bodyOf, createResolvedIssue, jsonHeaders, type TestUser } from './users.js';
 
 // One invoice with a PaymentIntent attached
@@ -15,12 +16,20 @@ export async function seedInvoice(
   app: Hono,
   manager: TestUser,
   amountCents = 4200,
+  lines?: InvoiceLineInput[],
 ): Promise<SeededInvoice> {
   const issue = await createResolvedIssue(app, manager);
   const created = await app.request('/invoices', {
     method: 'POST',
-    headers: jsonHeaders(manager.token, { 'idempotency-key': crypto.randomUUID() }),
-    body: JSON.stringify({ issueId: issue.id, vendorName: 'ColdFix Inc.', amountCents }),
+    headers: jsonHeaders(manager.token, {
+      'idempotency-key': crypto.randomUUID(),
+    }),
+    body: JSON.stringify({
+      issueId: issue.id,
+      vendorName: 'ColdFix Inc.',
+      amountCents,
+      lines,
+    }),
   });
   const invoice = await bodyOf<{ id: string }>(created);
   await app.request(`/invoices/${invoice.id}/payment-intent`, {
@@ -48,7 +57,7 @@ export async function seedInvoice(
 
 // Make the invoice appear to have been stuck N minutes ago
 // Move the timestamp backward since we cannot wait 10 minutes in a test.
-export async function oldInvoice(id: string, minutesAgo: number): Promise<void> {
+export async function ageInvoice(id: string, minutesAgo: number): Promise<void> {
   await query(
     `UPDATE invoices
      SET updated_at = now() - make_interval(mins => $2)

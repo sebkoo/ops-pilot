@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import type { ErrorBody } from '../../errors.js';
 import { AppError } from '../../errors.js';
 import { type AuthEnv, requireAuth, requireRole } from '../../middleware/auth.js';
 import { idempotency } from '../../middleware/idempotency.js';
@@ -24,31 +23,6 @@ import {
   RefundSchema,
 } from './invoice.schema.js';
 import { publishableKey, stripe } from './stripe.js';
-
-// When to refuse a refund
-// The shopper-facing sentence lives with the reason,
-// so the app never has to invent wording for a case the server knows about.
-type RefundRefusal =
-  | { code: 'not_paid' }
-  | { code: 'already_refunded' }
-  | { code: 'exceeds_remaining'; remainingCents: number }
-  | { code: 'no_lines' };
-
-const REFUSAL_MESSAGE: Record<RefundRefusal['code'], string> = {
-  not_paid: 'This invoice has not been paid yet.',
-  already_refunded: 'This invoice has already been fully refunded.',
-  exceeds_remaining: 'The amount is larger than what is left to refund.',
-  no_lines: 'This invoice has no lines to allocate a refund across.',
-};
-
-// Convert one refund refusal into the standard response shape
-const fail = (code: RefundRefusal['code'], details: unknown = null): ErrorBody => ({
-  error: {
-    code,
-    message: REFUSAL_MESSAGE[code],
-    details,
-  },
-});
 
 export const invoiceRoutes = new Hono<AuthEnv>();
 invoiceRoutes.use('*', requireAuth);
@@ -145,14 +119,19 @@ invoiceRoutes.post(
       });
 
     const lines = await listLines(invoice.id);
-    if (lines.length === 0) return c.json(fail('no_lines'), 422);
-
+    if (lines.length === 0)
+      throw new AppError(422, 'no_lines', 'This invoice has no lines to allocate.');
     const alreadyRefunded = await refundedTotal(invoice.id);
     const remaining = invoice.amountCents - alreadyRefunded;
-    if (remaining <= 0) return c.json(fail('already_refunded'), 422);
-    if (body.amountCents > remaining) {
-      return c.json(fail('exceeds_remaining', { remainingCents: remaining }), 422);
-    }
+    if (remaining <= 0)
+      throw new AppError(422, 'already_refunded', 'This invoice has already been fully refunded.');
+    if (body.amountCents > remaining)
+      throw new AppError(
+        422,
+        'exceeds_remaining',
+        'The refund amount exceeds the remaining balance.',
+        { remainingCents: remaining },
+      );
     const allocation = spread(
       body.amountCents,
       lines.map((line) => ({
@@ -160,12 +139,11 @@ invoiceRoutes.post(
         weight: line.amountCents,
       })),
     );
-
     const refund = await stripe().refunds.create(
       { payment_intent: invoice.paymentIntentId, amount: body.amountCents },
       { idempotencyKey: `refund:${invoice.id}:${alreadyRefunded}` },
     );
-
     await recordRefund(invoice.id, body.amountCents, body.reason, refund.id, allocation);
+    return c.json({ accepted: true }, 202);
   },
 );

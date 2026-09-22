@@ -33,7 +33,7 @@ export class FakeStripe implements StripeClient {
     ): Promise<Stripe.Refund> => {
       this.refunded.push(params);
       return {
-        id: `re_fake_${this.refunded.length}`,
+        id: `re_fake_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`,
         object: 'refund',
         status: 'succeeded',
       } as unknown as Stripe.Refund;

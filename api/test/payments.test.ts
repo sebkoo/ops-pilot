@@ -160,7 +160,10 @@ it('Refunds for paid invoices: unpaid returns 409, paid returns 202 and creates 
     amountCents: 3000,
   });
   const invoice = await bodyOf<IdBody>(created);
-  const tooEarly = await post(`/invoices/${invoice.id}/refund`, manager.token, {});
+  const tooEarly = await post(`/invoices/${invoice.id}/refund`, manager.token, {
+    amountCents: 3000,
+    reason: 'Duplicate charge',
+  });
   expect(tooEarly.status).toBe(409);
   expect(await errorCodeOf(tooEarly)).toBe('not_refundable');
 
@@ -172,8 +175,12 @@ it('Refunds for paid invoices: unpaid returns 409, paid returns 202 and creates 
     [invoice.id],
   ); // Simulate the work normally performed by the webhook
   const before = stripe.refunded.length;
-  const refund = await post(`/invoices/${invoice.id}/refund`, manager.token, {});
+  const refund = await post(`/invoices/${invoice.id}/refund`, manager.token, {
+    amountCents: 3000,
+    reason: 'Duplicate charge',
+  });
   expect(refund.status).toBe(202);
   expect(stripe.refunded.length - before).toBe(1);
   expect(stripe.refunded.at(-1)?.payment_intent).toMatch(/^pi_fake_/);
+  expect(stripe.refunded.at(-1)?.amount).toBe(3000);
 });

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { one, query } from '../../db.js';
+import { one, query, type Txn, withTransaction } from '../../db.js';
+import type { CreateInvoiceInput, InvoiceLineInput, LineKind } from './invoice.schema.js';
 import { canTransition, InvoiceStatus } from './invoice.schema.js';
 
 export const InvoiceRow = z.object({
@@ -45,20 +46,40 @@ const toInvoice = (r: InvoiceRow): Invoice => ({
   version: r.version,
 });
 
-export async function insertInvoice(input: {
-  issueId: string;
-  vendorName: string;
-  amountCents: number;
-  createdBy: string;
-}): Promise<Invoice> {
-  const row = await one<InvoiceRow>(
-    `INSERT INTO invoices (issue_id, vendor_name, amount_cents, created_by) 
+type NewInvoice = CreateInvoiceInput & { createdBy: string };
+
+async function insertInTransaction(db: Txn, input: NewInvoice): Promise<Invoice> {
+  const row = await db.one<InvoiceRow>(
+    `INSERT INTO invoices (
+      issue_id, 
+      vendor_name, 
+      amount_cents, 
+      created_by) 
      VALUES ($1, $2, $3, $4) 
      RETURNING ${COLUMNS}`,
     [input.issueId, input.vendorName, input.amountCents, input.createdBy],
   );
-  if (!row) throw new Error('INSERT INTO invoices did not return a row.');
+  if (!row) throw new Error('INSERT invoices did not return a row.');
+  const lines: InvoiceLineInput[] = input.lines ?? [
+    { kind: 'other', description: 'Total', amountCents: input.amountCents },
+  ];
+  for (const [position, line] of lines.entries()) {
+    await db.query(
+      `INSERT INTO invoice_lines (
+        invoice_id, 
+        position, 
+        kind, 
+        description, 
+        amount_cents) 
+       VALUES ($1, $2, $3, $4, $5)`,
+      [row.id, position, line.kind, line.description, line.amountCents],
+    );
+  }
   return toInvoice(row);
+}
+
+export async function insertInvoice(input: NewInvoice): Promise<Invoice> {
+  return withTransaction((db) => insertInTransaction(db, input));
 }
 
 export async function getInvoice(id: string): Promise<Invoice | null> {
@@ -130,4 +151,72 @@ export async function claimEvent(id: string, type: string): Promise<boolean> {
     [id, type],
   );
   return row !== null;
+}
+
+// One invoice line for the allocation weight
+export interface InvoiceLine {
+  id: string;
+  position: number;
+  kind: LineKind;
+  description: string;
+  amountCents: number;
+}
+
+interface LineRow {
+  id: string;
+  position: number;
+  kind: string;
+  description: string;
+  amount_cents: number;
+}
+
+// Invoice lines in position order
+export async function listLines(invoiceId: string): Promise<InvoiceLine[]> {
+  const rows = await query<LineRow>(
+    `SELECT id, position, kind, description, amount_cents
+     FROM invoice_lines
+     WHERE invoice_id = $1
+     ORDER BY position`,
+    [invoiceId],
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    position: row.position,
+    kind: row.kind as InvoiceLine['kind'],
+    description: row.description,
+    amountCents: row.amount_cents,
+  }));
+}
+
+// Total refunded so far
+// returns 0 when there have been no refunds
+export async function refundedTotal(invoiceId: string): Promise<number> {
+  const row = await one<{ total: string }>(
+    `SELECT COALESCE(sum(amount_cents), 0)::text AS total
+     FROM invoice_refunds
+     WHERE invoice_id = $1`,
+    [invoiceId],
+  );
+  return Number(row?.total ?? 0);
+}
+
+// Record one refund in the ledger to persis the entire allocation breakdown
+export async function recordRefund(
+  invoiceId: string,
+  amountCents: number,
+  reason: string,
+  stripeRefundId: string,
+  allocation: Record<string, number>,
+): Promise<void> {
+  await query(
+    `INSERT INTO invoice_refunds (
+      invoice_id, 
+      amount_cents, 
+      reason, 
+      stripe_refund_id, 
+      allocation)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (stripe_refund_id) DO NOTHING`,
+    [invoiceId, amountCents, reason, stripeRefundId, JSON.stringify(allocation)],
+  );
 }
