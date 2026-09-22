@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { initConfig } from '../src/config.js';
-import { closePool } from '../src/db.js';
+import { closePool, query } from '../src/db.js';
+import { encodeCursor } from '../src/modules/sync/sync.routes.js';
 import { bodyOf, errorCodeOf, idOf } from './support/users.js';
 
 let headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -10,6 +11,20 @@ const json = (body: unknown, method = 'POST', extra: Record<string, string> = {}
   headers: { ...headers, ...extra },
   body: JSON.stringify(body),
 });
+
+// Creates one issue and returns only its ID
+const createIssue = async (title: string): Promise<string> => {
+  const res = await app.request(
+    '/issues',
+    json({
+      title,
+      category: 'other',
+      priority: 'low',
+      location: 'test',
+    }),
+  );
+  return idOf(res);
+};
 type Page = {
   items: Array<{ id: string }>;
   cursor: string | null;
@@ -43,8 +58,18 @@ describe('sync', () => {
       priority: 'low',
       location: 'test',
     };
-    const first = await app.request('/issues', json(body, 'POST', { 'idempotency-key': key }));
-    const second = await app.request('/issues', json(body, 'POST', { 'idempotency-key': key }));
+    const first = await app.request(
+      '/issues',
+      json(body, 'POST', {
+        'idempotency-key': key,
+      }),
+    );
+    const second = await app.request(
+      '/issues',
+      json(body, 'POST', {
+        'idempotency-key': key,
+      }),
+    );
     expect(first.status).toBe(201);
     expect(second.headers.get('idempotent-replayed')).toBe('true');
     expect(await idOf(second)).toBe(await idOf(first));
@@ -80,34 +105,48 @@ describe('sync', () => {
     );
     const reused = await app.request(
       '/issues',
-      json({ title: 'B', category: 'low', location: 'test' }, 'POST', {
-        'idempotency-key': key,
-      }),
+      json(
+        {
+          title: 'B',
+          category: 'low',
+          location: 'test',
+        },
+        'POST',
+        {
+          'idempotency-key': key,
+        },
+      ),
     );
     expect(reused.status).toBe(422);
     expect(await errorCodeOf(reused)).toBe('idempotency_key_reused');
   });
 
-  it('returns only changes after the cursor and does not miss records with the same timestamp', async () => {
-    const first = await app.request('/sync/changes?limit=1', { headers });
-    const page1 = await bodyOf<Page>(first);
-    expect(page1.cursor).toBeTruthy();
-    const seen = new Set<string>(page1.items.map((i) => i.id));
-    let cursor = page1.cursor;
-    for (let i = 0; i < 500 && cursor; i++) {
+  it('Cursor uses (updated_at, id): no duplicates or missed rows with the same timestamp', async () => {
+    const ids: string[] = [];
+    for (const title of ['Same Timestamp A', 'Same Timestamp B', 'Same Timestamp C'])
+      ids.push(await createIssue(title));
+    const [tie] = await query<{ updated_at: string }>(
+      `UPDATE issues
+       SET updated_at = now()
+       WHERE id = ANY($1)
+       RETURNING updated_at::text AS updated_at`,
+      [ids],
+    );
+    if (!tie) throw new Error('UPDATE issues did not return a row.');
+    let cursor: string | null = encodeCursor({
+      updatedAt: tie.updated_at,
+      id: '00000000-0000-0000-0000-000000000000',
+    });
+    const seen: string[] = [];
+    for (let i = 0; i < 5 && cursor; i++) {
       const res = await app.request(`/sync/changes?limit=1&cursor=${encodeURIComponent(cursor)}`, {
         headers,
       });
       const page = await bodyOf<Page>(res);
       if (page.items.length === 0) break;
-      for (const item of page.items) {
-        expect(seen.has(item.id)).toBe(false);
-        seen.add(item.id);
-      }
+      seen.push(...page.items.map((item) => item.id));
       cursor = page.cursor;
     }
-    const all = await bodyOf<Page>(await app.request('/sync/changes?limit=500', { headers }));
-    expect(all.hasMore).toBe(false);
-    expect(seen.size).toBe(all.items.length);
+    expect(seen).toEqual([...ids].sort());
   });
 });
