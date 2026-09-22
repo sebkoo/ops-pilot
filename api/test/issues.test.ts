@@ -56,21 +56,39 @@ describe('issues API', () => {
 
     const patched = await app.request(
       `/issues/${issue.id}`,
-      json({ version: 1, status: 'assigned' }, 'PATCH'),
+      json(
+        {
+          version: 1,
+          status: 'assigned',
+        },
+        'PATCH',
+      ),
     );
     expect(patched.status).toBe(200);
     expect((await read<{ version: number }>(patched)).version).toBe(2);
 
     const stale = await app.request(
       `/issues/${issue.id}`,
-      json({ version: 1, status: 'in_progress' }, 'PATCH'),
+      json(
+        {
+          version: 1,
+          status: 'in_progress',
+        },
+        'PATCH',
+      ),
     );
     expect(stale.status).toBe(409);
     expect((await read<{ error: { code: string } }>(stale)).error.code).toBe('version_conflict');
 
     const skip = await app.request(
       `/issues/${issue.id}`,
-      json({ version: 2, status: 'resolved' }, 'PATCH'),
+      json(
+        {
+          version: 2,
+          status: 'resolved',
+        },
+        'PATCH',
+      ),
     );
     expect(skip.status).toBe(422);
     expect((await read<{ error: { code: string } }>(skip)).error.code).toBe('invalid_transition');
@@ -89,13 +107,28 @@ describe('issues API', () => {
     const issue = await read<{ id: string }>(created);
     let version = 1;
     for (const status of ['assigned', 'in_progress', 'resolved'] as const) {
-      const step = await app.request(`/issues/${issue.id}`, json({ version, status }, 'PATCH'));
+      const step = await app.request(
+        `/issues/${issue.id}`,
+        json(
+          {
+            version,
+            status,
+          },
+          'PATCH',
+        ),
+      );
       expect(step.status).toBe(200);
       version = (await read<{ version: number }>(step)).version;
     }
     const after = await app.request(
       `/issues/${issue.id}`,
-      json({ version, status: 'assigned' }, 'PATCH'),
+      json(
+        {
+          version,
+          status: 'assigned',
+        },
+        'PATCH',
+      ),
     );
     expect(after.status).toBe(422);
     expect((await read<{ error: { code: string } }>(after)).error.code).toBe('invalid_transition');
@@ -132,7 +165,13 @@ describe('issues API', () => {
   });
 
   it('returns 400 for invalid input', async () => {
-    const res = await app.request('/issues', json({ title: '', category: 'nope' }));
+    const res = await app.request(
+      '/issues',
+      json({
+        title: '',
+        category: 'nope',
+      }),
+    );
     expect(res.status).toBe(400);
 
     const body = await read<{

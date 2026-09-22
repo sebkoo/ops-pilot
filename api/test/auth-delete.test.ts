@@ -59,7 +59,14 @@ describe('account deletion', () => {
     const password = 'password';
 
     const created = await readOk<{ tokens: { accessToken: string } }>(
-      await app.request('/auth/register', json({ email, password, displayName: 'Deleted Tester' })),
+      await app.request(
+        '/auth/register',
+        json({
+          email,
+          password,
+          displayName: 'Deleted Tester',
+        }),
+      ),
       201,
     );
     const deleted = await app.request(
@@ -68,12 +75,22 @@ describe('account deletion', () => {
     );
     expect(deleted.status).toBe(204);
 
-    const login = await app.request('/auth/login', json({ email, password }));
+    const login = await app.request(
+      '/auth/login',
+      json({
+        email,
+        password,
+      }),
+    );
     expect(login.status).toBe(401);
 
     const again = await app.request(
       '/auth/register',
-      json({ email, password, displayName: 'Registered Again' }),
+      json({
+        email,
+        password,
+        displayName: 'Registered Again',
+      }),
     );
     expect(again.status).toBe(201);
   });

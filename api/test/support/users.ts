@@ -65,7 +65,10 @@ export async function registerUser(
     const login = await app.request('/auth/login', {
       method: 'POST',
       headers: jsonHeaders(),
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email,
+        password,
+      }),
     });
     body = (await login.json()) as typeof body;
   }

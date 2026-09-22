@@ -127,11 +127,7 @@ describe('auth (4.4)', () => {
     expect(me.status).toBe(200);
     expect(await idOf(me)).toBe(reg.user.id);
     expect(
-      (
-        await app.request('/auth/me', {
-          headers: jsonHeaders(reg.tokens.refreshToken),
-        })
-      ).status,
+      (await app.request('/auth/me', { headers: jsonHeaders(reg.tokens.refreshToken) })).status,
     ).toBe(401);
     expect((await app.request('/auth/me', { headers: jsonHeaders() })).status).toBe(401);
   });

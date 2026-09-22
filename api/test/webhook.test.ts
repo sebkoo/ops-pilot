@@ -31,7 +31,10 @@ const processInvoice = () => seedInvoice(app, manager, 9900);
 const deliver = (payload: string, signature = stripe.sign(payload)) =>
   app.request('/webhooks/stripe', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'stripe-signature': signature },
+    headers: {
+      'content-type': 'application/json',
+      'stripe-signature': signature,
+    },
     body: payload,
   });
 
